@@ -1,0 +1,77 @@
+{
+  "description" : "Image collection format for Sentinel-2 imagery LEVEL 2 derived from FORCE",
+  "tags" : ["FORCE", "LEVEL 2", "Sentinel-2", "BOA"],
+  "references" : "https://force-eo.readthedocs.io/en/latest/",
+  "pattern" : ".+\\.tif",
+  "images" : {
+    "pattern" : ".*([0-9]{8})_([A-Z]{5}[2-3]{1})_([A-Z]{3}[2]{1}[A-B]{1})_([A-Z]{3})+\\.tif"
+  },
+  "datetime" : {
+    "pattern" : ".*([0-9]{8})_[A-Z]{5}[2-3]{1}_[A-Z]{3}[2]{1}[A-B]{1}_[A-Z]{3}+\\.tif",
+    "format" : "%Y%m%d"
+  },
+   "bands" : 
+   {
+    "BLUE" : {
+      "type": "Int16",
+      "nodata" : -9999,
+      "scale" : 10000,
+      "band" : 1,
+      "pattern" : ".+_BLUE\\.tif$"
+    },
+    "GREEN" : {
+      "type": "Int16",
+      "nodata" : -9999,
+      "scale" : 10000,
+      "band" : 2
+    },
+    "RED" : {
+      "type": "Int16",
+      "nodata" : -9999,
+      "scale" : 10000,
+      "band" : 3
+    },
+    "RE1" : {
+      "type": "Int16",
+      "nodata" : -9999,
+      "scale" : 10000,
+      "band" : 4
+    },
+    "RE2" : {
+      "type": "Int16",
+      "nodata" : -9999,
+      "scale" : 10000,
+      "band" : 5
+    },
+    "RE3" : {
+      "type": "Int16",
+      "nodata" : -9999,
+      "scale" : 10000,
+      "band" : 6
+    },
+    "BNIR" : {
+      "type": "Int16",
+      "nodata" : -9999,
+      "scale" : 10000,
+      "band" : 7
+    },
+    "NIR" : {
+      "type": "Int16",
+      "nodata" : -9999,
+      "scale" : 10000,
+      "band" : 8
+    },
+    "SWIR1" : {
+      "type": "Int16",
+      "nodata" : -9999,
+      "scale" : 10000,
+      "band" : 9
+    },
+    "SWIR2" : {
+      "type": "Int16",
+      "nodata" : -9999,
+      "scale" : 10000,
+      "band" : 10
+    }
+  }
+}
