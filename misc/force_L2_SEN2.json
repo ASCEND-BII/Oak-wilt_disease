@@ -14,52 +14,62 @@
     "BLUE": {
       "pattern": ".*\\.tif",
       "band" : 1,
-      "nodata" : -9999
+      "nodata" : -9999,
+      "scale" : 10000
     },
     "GREEN": {
       "pattern": ".*\\.tif",
       "band" : 2,
-      "nodata" : -9999
+      "nodata" : -9999,
+      "scale" : 10000
     },
     "RED": {
       "pattern": ".*\\.tif",
       "band" : 3,
-      "nodata" : -9999
+      "nodata" : -9999,
+      "scale" : 10000
     },
     "REDEDGE1": {
       "pattern": ".*\\.tif",
       "band" : 4,
-      "nodata" : -9999
+      "nodata" : -9999,
+      "scale" : 10000
     },
     "REDEDGE2": {
       "pattern": ".*\\.tif",
       "band" : 5,
-      "nodata" : -9999
+      "nodata" : -9999,
+      "scale" : 10000
     },
     "REDEDGE3": {
       "pattern": ".*\\.tif",
       "band" : 6,
-      "nodata" : -9999
+      "nodata" : -9999,
+      "scale" : 10000
     },
     "BROADNIR": {
       "pattern": ".*\\.tif",
       "band" : 7,
-      "nodata" : -9999
+      "nodata" : -9999,
+      "scale" : 10000
     },
     "NIR": {
       "pattern": ".*\\.tif",
       "band" : 8,
-      "nodata" : -9999
+      "nodata" : -9999,
+      "scale" : 10000
     },
     "SWIR1": {
       "pattern": ".*\\.tif",
       "band" : 9,
-      "nodata" : -9999
+      "nodata" : -9999,
+      "scale" : 10000
     },
     "SWIR2": {
       "pattern": ".*\\.tif",
       "band" : 10,
-      "nodata" : -9999
+      "nodata" : -9999,
+      "scale" : 10000
     }
   }
 }
