@@ -1,5 +1,5 @@
 ################################################################################
-##### Function to get the trend from a set of scenes
+##### Function to get the summary set of scenes
 ################################################################################
 
 #-------------------------------------------------------------------------------
@@ -22,23 +22,12 @@ library(lubridate)
 #-------------------------------------------------------------------------------
 #Function
 
-get_trend <- function(scenes, date, threads = 12) {
-  
-  #Get julian day
-  julian_day <- yday(date)
-  
-  #Stack scenes
-  raster_stack <- stack(scenes)
-  
-  #Start cluster
-  beginCluster(threads)
+get_summary <- function(scenes, date) {
   
   #Get trend
-  slope <- clusterR(x = raster_stack, 
-                    fun = calc, 
-                    args = list(fun_slope),
-                    export= 'julian_day')
-  #End cluster
-  endCluster()
+  slope <- app(scenes, 
+               fun = fun_slope,
+               date = doy,
+               cores = threads)
   
 }
