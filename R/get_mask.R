@@ -5,46 +5,41 @@
 #-------------------------------------------------------------------------------
 # Libraries
 
-library(raster)
+library(terra)
 
 #-------------------------------------------------------------------------------
 #Arguments
 
 #scenes: a vector that describe the scenes with their path
 #threshold: a threshold to separate pixels to be used (1) and non-used (0)
-#threads: select the number of threads to use for parallel computing
 
 #-------------------------------------------------------------------------------
 #Function
 
-get_mask <- function(scenes, threshold, threads) {
+get_mask <- function(scenes, threshold) {
  
-  #Stack scenes
-  raster_stack <- stack(scenes)
+  #load scenes
+  mask_stack <- rast(mask_scenes)
   
-  #Start cluster
-  beginCluster(threads)
+  #apply mean function
+  mask_raster <- app(mask_stack, 
+                     fun = mean,
+                     na.rm = TRUE)
   
-  #layer
-  mask_layer <- clusterR(x = raster_stack, 
-                    fun = calc, 
-                    args = list(mean, na.rm = TRUE))
-  #End cluster
-  endCluster()
+  #rescale image
+  mask_raster <- mask_raster/10000
   
-  #Back scale
-  mask_layer <- mask_layer/10000
+  #matrix for classification
+  clasf_matix <- matrix(c(0.00, threshold, 0,
+                          threshold, 1, 1),
+                        ncol = 3,
+                        byrow = TRUE)
   
-  #Create mask
-  mask_layer[mask_layer >= threshold] <- 1
-  mask_layer[mask_layer < threshold] <- 0
+  #mask raster
+  mask_layer <- classify(mask_raster, 
+                         clasf_matix, 
+                         include.lowest = TRUE)
   
   return(mask_layer)
    
-}
-  
-  
-  
-  
-  
 }
