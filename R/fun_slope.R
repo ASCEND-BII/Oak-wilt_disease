@@ -6,7 +6,7 @@
 #Arguments
 
 #y: value information
-#Date: an integer that describe the julian day
+#Date: an integer that describe the Julian day
 
 #-------------------------------------------------------------------------------
 #Functions
