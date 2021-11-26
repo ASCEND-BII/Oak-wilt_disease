@@ -10,10 +10,11 @@
 
 #-------------------------------------------------------------------------------
 #Functions
-fun_slope <- function(y, Date) { 
+fun_slope <- function(y) { 
+  
   if(all(is.na(y))) {
     NA
   } else {
-    m = lm(y ~ Date); summary(m)$coefficients[2] 
+    m <- lm(y ~ julian_day, na.action = na.omit); summary(m)$coefficients[2] 
   }
 }
