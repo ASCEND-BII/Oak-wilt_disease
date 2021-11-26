@@ -4,18 +4,18 @@
 
 #-------------------------------------------------------------------------------
 # Libraries
-#-------------------------------------------------------------------------------
 
 library(data.table)
 
 #-------------------------------------------------------------------------------
 #Arguments
-#-------------------------------------------------------------------------------
-#root_path: select the root path of where the secenes are located
+
+#root_path: select the root path of where the scenes are located
 root_path <- "/media/antonio/Work/Oak-Sentinel/level3_sen2"
 
-################################################################################
+#-------------------------------------------------------------------------------
 #Functions
+
 path_scenes <- function(root_path) {
   
   #Search for paths
@@ -35,6 +35,10 @@ path_scenes <- function(root_path) {
   
   #Get sensor
   frame[, sensor := substr(strsplit(scene, "_")[[1]][9], 1, 5), 
+        by = seq_along(1:nrow(frame))]
+  
+  #Get band information
+  frame[, band := strsplit(scene, "_")[[1]][6], 
         by = seq_along(1:nrow(frame))]
   
   return(frame)
