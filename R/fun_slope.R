@@ -6,15 +6,15 @@
 #Arguments
 
 #y: value information
-#Date: an integer that describe the Julian day
+#date: an integer that describe the day of the year
 
 #-------------------------------------------------------------------------------
 #Functions
-fun_slope <- function(y) { 
+fun_slope <- function(y, date) { 
   
   if(all(is.na(y))) {
     NA
   } else {
-    m <- lm(y ~ julian_day, na.action = na.omit); summary(m)$coefficients[2] 
+    m <- lm(y ~ date, na.action = na.omit); summary(m)$coefficients[2] 
   }
 }
