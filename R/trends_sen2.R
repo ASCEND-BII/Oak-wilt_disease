@@ -73,64 +73,64 @@ trends_sen2 <- function(root_path, mask_doy, evaluation_doy, out_path, threads) 
       sub_year <- subset(sub_tile, year(date) == unique_years[ii])
       
       if(nrow(sub_year) >= 10) {
-      
-      ###Mask-------------------------------------------------------------------
-      #Mask list
-      mask_scenes <- subset(sub_year, doy >= mask_doy[1] & doy <= mask_doy[2])
-      mask_scenes <- paste0(root_path, "/", 
-                            mask_scenes$tile, "/", mask_scenes$scene)
-      
-      #Mask
-      mask_layer <- get_mask(mask_scenes, threshold = 0.4)
-      
-      #Export mask
-      name_mask <- paste0(out_path, "/", 
-                          unique_tile[i], "_", 
-                          unique_years[ii], "_", 
-                          "mask", "_",
-                          "kNDVI", ".tif")
-      
-      writeRaster(mask_layer, name_mask, names = "mask", overwrite=TRUE)
-      
-      ###Trend------------------------------------------------------------------
-      #Period of interest
-      trends_scenes <- subset(sub_year, 
-                       doy >= evaluation_doy[1] & doy <= evaluation_doy[2])
-      
-      doy <- trends_scenes$doy
-      
-      trends_scenes <- paste0(root_path, "/", trends_scenes$tile, 
-                              "/", trends_scenes$scene)
-      
-      #Create a raster stack
-      scenes <- rast(trends_scenes)
-      
-      #Apply mask
-      scenes_masked <- mask(scenes,
-                            mask_layer,
-                            maskvalues= 0)
-      #Scale back
-      scenes_masked <- scenes_masked/10000
-      
-      #Estimate trends
-      trend_layer <- app(scenes_masked, 
-                         fun = fun_slope,
-                         date = doy,
-                         cores = threads)
-      names(trend_layer) <- "slope"
-      
-      #Export slope
-      name_slope <- paste0(out_path, "/", 
-                          unique_tile[i], "_", 
-                          unique_years[ii], "_", 
-                          "slope", "_",
-                          "kNDVI", ".tif")
         
-      writeRaster(trend_layer, name_slope, names = "slope", overwrite=TRUE)
-      
-      #Release memory -just in case-
-      gc()
-      
+        ###Mask-------------------------------------------------------------------
+        #Mask list
+        mask_scenes <- subset(sub_year, doy >= mask_doy[1] & doy <= mask_doy[2])
+        mask_scenes <- paste0(root_path, "/", 
+                              mask_scenes$tile, "/", mask_scenes$scene)
+        
+        #Mask
+        mask_layer <- get_mask(mask_scenes, threshold = 0.4)
+        
+        #Export mask
+        name_mask <- paste0(out_path, "/", 
+                            unique_tile[i], "_", 
+                            unique_years[ii], "_", 
+                            "mask", "_",
+                            "kNDVI", ".tif")
+        
+        writeRaster(mask_layer, name_mask, names = "mask", overwrite=TRUE)
+        
+        ###Trend------------------------------------------------------------------
+        #Period of interest
+        trends_scenes <- subset(sub_year, 
+                                doy >= evaluation_doy[1] & doy <= evaluation_doy[2])
+        
+        doy <- trends_scenes$doy
+        
+        trends_scenes <- paste0(root_path, "/", trends_scenes$tile, 
+                                "/", trends_scenes$scene)
+        
+        #Create a raster stack
+        scenes <- rast(trends_scenes)
+        
+        #Apply mask
+        scenes_masked <- mask(scenes,
+                              mask_layer,
+                              maskvalues= 0)
+        #Scale back
+        scenes_masked <- scenes_masked/10000
+        
+        #Estimate trends
+        trend_layer <- app(scenes_masked, 
+                           fun = fun_slope,
+                           date = doy,
+                           cores = threads)
+        names(trend_layer) <- "slope"
+        
+        #Export slope
+        name_slope <- paste0(out_path, "/", 
+                             unique_tile[i], "_", 
+                             unique_years[ii], "_", 
+                             "slope", "_",
+                             "kNDVI", ".tif")
+        
+        writeRaster(trend_layer, name_slope, names = "slope", overwrite=TRUE)
+        
+        #Release memory -just in case-
+        gc()
+        
       } else{
         cat(paste0("No ", unique_tile[i], " for ", unique_years[ii]))
       }
@@ -138,6 +138,6 @@ trends_sen2 <- function(root_path, mask_doy, evaluation_doy, out_path, threads) 
   }
 }
 
-trends_sen2(root_path, mask_doy, evaluation_doy, out_path, threads)
+
 
 
