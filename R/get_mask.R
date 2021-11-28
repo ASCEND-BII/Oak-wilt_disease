@@ -16,18 +16,18 @@ library(terra)
 #-------------------------------------------------------------------------------
 #Function
 
-get_mask <- function(scenes, threshold) {
+get_mask <- function(mask_scenes, threshold) {
  
   #load scenes
   mask_stack <- rast(mask_scenes)
   
   #apply mean function
-  mask_raster <- app(mask_stack, 
-                     fun = mean,
-                     na.rm = TRUE)
+  mask_layer <- app(mask_stack, 
+                    fun = mean,
+                    na.rm = TRUE)
   
   #rescale image
-  mask_raster <- mask_raster/10000
+  mask_layer <- mask_layer/10000
   
   #matrix for classification
   clasf_matix <- matrix(c(0.00, threshold, 0,
@@ -36,7 +36,7 @@ get_mask <- function(scenes, threshold) {
                         byrow = TRUE)
   
   #mask raster
-  mask_layer <- classify(mask_raster, 
+  mask_layer <- classify(mask_layer, 
                          clasf_matix, 
                          include.lowest = TRUE)
   

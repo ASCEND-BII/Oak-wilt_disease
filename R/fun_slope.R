@@ -15,6 +15,17 @@ fun_slope <- function(y, date) {
   if(all(is.na(y))) {
     NA
   } else {
-    m <- lm(y ~ date, na.action = na.omit); summary(m)$coefficients[2] 
+    
+    #object to return
+    r <- rep(NA, 3)
+    
+    #linear models
+    m <- lm(y ~ date, na.action = na.omit)
+    
+    r[1] <- summary(m)$coefficients[2] #slope
+    r[2] <- summary(m)$coefficients[1] #sd slope
+    r[3] <- summary(m)$r.squared #r2
+    
+    return(r[1])
   }
 }
