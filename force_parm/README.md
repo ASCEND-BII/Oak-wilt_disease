@@ -32,8 +32,6 @@ There is a recommended folder structure for reproducing this. Described as:
 - /R
 ```
 
-
-
 <br/>
 
 
@@ -83,7 +81,7 @@ force-higher-level /Oak-wilt/param/L3_landsat-tsa.prm
 
 ----
 
-#### **Sentinel-2 Archive processing**
+#### **Sentinel-2 archive processing**
 
 <br/>
 
