@@ -12,10 +12,12 @@ library(data.table)
 
 #path: path where the satellite imagery is located
 path <- "/media/antonio/Files/MN-Sentinel-Landsat/Landsat"
+path <- "/media/antonio/Files/MN-Sentinel-Landsat"
 
 #pattern: Pattern for search. It should be ".SAFE" for Sentinel-2 or
 #         ".tar" for Landsat-8
 pattern <- ".tar"
+pattern <- ".SAFE"
 
 #out_put: name of the .txt queue file
 out_put <- "queue_landsat.txt"
@@ -23,8 +25,6 @@ out_put <- "queue_landsat.txt"
 #-------------------------------------------------------------------------------
 # Function
 get_queued_files <- function(path, pattern, out_put) {
-  
-  path_elements <- length(strsplit(path, split = "/")[[1]])+1
   
   sensor <- match.arg(pattern, c(".tar", ".SAFE"))
   
@@ -35,6 +35,9 @@ get_queued_files <- function(path, pattern, out_put) {
                       full.names = TRUE, 
                       recursive = TRUE,
                       include.dirs = TRUE)
+  
+  
+  path_elements <- length(strsplit(files[1], split = "/")[[1]])
   
   frame <- data.table(files = files, QUEUED = "QUEUED")
   
@@ -58,8 +61,10 @@ get_queued_files <- function(path, pattern, out_put) {
                                     substr(strsplit(files, split = "/")[[1]][path_elements], 18, 19))),
            by = seq_len(nrow(frame))]
     
-    frame <- frame[order(date)]
+    frame[ , tile := substr(strsplit(files, split = "/")[[1]][path_elements], 39, 44),
+           by = seq_len(nrow(frame))]
     
+    frame <- frame[order(date, tile)]
     
   }
   
