@@ -5,8 +5,8 @@
 #-------------------------------------------------------------------------------
 #Arguments
 
-#y: value information
-#date: an integer that describe the day of the year
+#' @param y value information
+#' @param date an integer that describe the day of the year
 
 #-------------------------------------------------------------------------------
 #Functions

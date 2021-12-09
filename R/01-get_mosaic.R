@@ -10,15 +10,17 @@ library(terra)
 #-------------------------------------------------------------------------------
 #Arguments
 
-#path: local folder where the scenes are located
-path <- "/media/antonio/Work/Oak-Sentinel/level4_sen2"
+#' @param path local folder where the scenes are located
+#' @param pattern pattern name of the scenes
+#' @param out_path: path of the outputs including the name, if not return a raster
 
-#pattern: pattern name of the scenes
-pattern <- "slope_kNDVI.tif"
+path <- "/media/antonio/Work/Oak-wilt/level4_sen2"
+pattern <- "mask.tif"
+out_path <- "/media/antonio/Work/Oak-wilt/level4_sen2/2021_mask.tif"
 
 #-------------------------------------------------------------------------------
 # Function
-get_mosaic <- function(path, pattern) {
+get_mosaic <- function(path, pattern, output = NULL) {
   
   #Get files
   files <- list.files(path = path, 
@@ -27,7 +29,7 @@ get_mosaic <- function(path, pattern) {
                       full.names = TRUE, 
                       recursive = TRUE)
   
-  cat("A total of", length(files), "are been merge")
+  cat("A total of", length(files), "images will be merged")
   
   #Create a list of raster
   raster_list <- list()
@@ -42,6 +44,10 @@ get_mosaic <- function(path, pattern) {
   
   #Create mosaic
   mosaic_layer <- mosaic(raster_collection)
+  
+  if(!is.NULL(output)) {
+    writeRaster(mosaic_layer, out_path, names = "mask", overwrite=TRUE)
+  }
   
   return(mosaic_layer)
   

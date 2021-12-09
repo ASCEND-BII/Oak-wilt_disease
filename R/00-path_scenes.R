@@ -10,7 +10,7 @@ library(data.table)
 #-------------------------------------------------------------------------------
 #Arguments
 
-#root_path: select the root path of where the scenes are located
+#' @param root_path select the root path of where the scenes are located
 root_path <- "/media/antonio/Work/Oak-Sentinel/level3_sen2"
 
 #-------------------------------------------------------------------------------
