@@ -10,8 +10,8 @@ library(terra)
 #-------------------------------------------------------------------------------
 #Arguments
 
-#scenes: a vector that describe the scenes with their path
-#threshold: a threshold to separate pixels to be used (1) and non-used (0)
+#' @param scenes a vector that describe the scenes with their path
+#' @param threshold a threshold to separate pixels to be used (1) and non-used (0)
 
 #-------------------------------------------------------------------------------
 #Function
