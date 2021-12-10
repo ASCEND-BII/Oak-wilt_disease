@@ -27,7 +27,7 @@ library(terra)
 
 root_path <- "/media/antonio/Work/Oak-wilt/level3_sen3"
 mask_doy <- c(152, 212) #The month of june
-out_path <- "/media/antonio/Work/Oak-wilt/level4_sen2" 
+out_path <- "/media/antonio/Work/Oak-wilt/level4_mask" 
 
 #'------------------------------------------------------------------------------
 #' Function
@@ -52,6 +52,7 @@ create_mask <- function(root_path, mask_doy, out_path, overwrite = FALSE) {
   pb <- txtProgressBar(min = 1, 
                        max = length(unique_tile)*length(unique_years), 
                        style = 3)
+  n <- 1
   
   #Loop over tiles
   for(i in 1:length(unique_tile)) {
@@ -63,7 +64,8 @@ create_mask <- function(root_path, mask_doy, out_path, overwrite = FALSE) {
     for(ii in 1:length(unique_years)) { 
       
       #Progress
-      setTxtProgressBar(pb, i*ii)
+      setTxtProgressBar(pb, n)
+      n <- n+1
       
       #Overwrite
       layer_name <- paste0(out_path, "/", 
@@ -100,7 +102,11 @@ create_mask <- function(root_path, mask_doy, out_path, overwrite = FALSE) {
           dir.create(directory)
         }
         
-        writeRaster(mask_layer, layer_name, names = "mask", overwrite=TRUE)
+        writeRaster(mask_layer, 
+                    layer_name, 
+                    names = "mask", 
+                    overwrite=TRUE,
+                    NAflag = -9999)
         
       } else {
         

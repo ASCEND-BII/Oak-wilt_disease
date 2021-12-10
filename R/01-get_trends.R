@@ -59,6 +59,7 @@ trends_sen2 <- function(root_path, evaluation_doy, band_select, mask_path, out_p
   pb <- txtProgressBar(min = 1, 
                        max = length(unique_tile)*length(unique_years), 
                        style = 3)
+  n <- 1
   
   #Loop over tiles
   for(i in 1:length(unique_tile)) {
@@ -70,7 +71,8 @@ trends_sen2 <- function(root_path, evaluation_doy, band_select, mask_path, out_p
     for(ii in 1:length(unique_years)) { 
       
       #Progress
-      setTxtProgressBar(pb, i*ii)
+      setTxtProgressBar(pb, n)
+      n <- n+1
       
       #Subset layers for a given year
       sub_year <- subset(sub_tile, year(date) == unique_years[ii])
