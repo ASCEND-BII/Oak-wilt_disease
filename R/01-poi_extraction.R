@@ -47,11 +47,13 @@ poi_extraction <- function(root_path, points, tile_sel, layer) {
   values <- terra::extract(scenes_rast, xy, xy = T, method = "simple")
   values <- as.data.table(cbind(values, points[,3]))
   frame <- melt(values, id.vars = c("ID", "x", "y", "Status"),
-                variable.name = "date", value.name = layer)
+                variable.name = "date", value.name = "layer")
   frame$date <- as.Date(as.character(frame$date))
   frame <- na.exclude(frame)
-  frame$KNV <- frame$KNV/10000
+  frame$layer <- frame$layer/10000
+  
+  frame <- frame[order(ID, date)]
+  
+  return(frame)
 }
 
-tree <- frame[ID == "1"]
-plot(tree$KNV ~ tree$date)
