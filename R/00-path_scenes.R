@@ -11,7 +11,7 @@ library(data.table)
 #Arguments
 
 #' @param root_path select the root path of where the scenes are located
-root_path <- "/media/antonio/Work/Oak-Sentinel/level3_sen2"
+root_path <- "/media/antonio/Work/Oak-wilt/level3_sen3"
 
 #-------------------------------------------------------------------------------
 #Functions
@@ -26,11 +26,25 @@ path_scenes <- function(root_path) {
                       recursive = TRUE)
   
   #Arrange path in frame
-  frame <- data.table(matrix(unlist(strsplit(files, "/")), nrow= length(files), byrow=TRUE), stringsAsFactors=FALSE)
+  frame <- data.table(matrix(unlist(strsplit(files, "/")), 
+                             nrow= length(files), 
+                             byrow=TRUE), stringsAsFactors=FALSE)
   colnames(frame) <- c("tile", "scene")
   
   #Get date
   frame[, date := as.Date(strsplit(scene, "_")[[1]][8], "%Y%m%d"), 
+        by = seq_along(1:nrow(frame))]
+  
+  #Get year information
+  frame[, year := year(date), 
+        by = seq_along(1:nrow(frame))]
+  
+  #Get month information
+  frame[, month := month(date), 
+        by = seq_along(1:nrow(frame))]
+  
+  #Get doy information
+  frame[, doy := yday(date), 
         by = seq_along(1:nrow(frame))]
   
   #Get sensor
