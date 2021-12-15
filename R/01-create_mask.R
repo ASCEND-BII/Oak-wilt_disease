@@ -21,6 +21,8 @@ library(terra)
 #' Arguments
 
 #' @param root_path select the root path of where the scenes are located
+#' @param mask_layer name of the layer to use as mask
+#' @param threshold the threshold value to mask
 #' @param mask_months period in which mask will be estimated for
 #' @param out_path path of the outputs
 #' @param overwrite if the file exist, do you want to create it again?
@@ -31,22 +33,19 @@ out_path <- "/media/antonio/Work/Oak-wilt/level4_mask"
 
 #'------------------------------------------------------------------------------
 #' Function
-create_mask <- function(root_path, mask_doy, out_path, overwrite = FALSE) {
+create_mask <- function(root_path, mask_layer = "NDV", threshold = 0.4, mask_doy, out_path, overwrite = FALSE) {
   
   #Get scenes to work with
   frame <- path_scenes(root_path)
   
   #Subset just to KNV
-  frame <- frame[band == "KNV"]
+  frame <- frame[band == mask_layer]
   
   #Unique tiles
   unique_tile <- unique(frame$tile)
   
   #Unique years
   unique_years <- unique(year(frame$date))
-  
-  #Day of the year
-  frame$doy <- yday(frame$date)
   
   #Progress bar
   pb <- txtProgressBar(min = 1, 
@@ -91,7 +90,7 @@ create_mask <- function(root_path, mask_doy, out_path, overwrite = FALSE) {
                               mask_scenes$tile, "/", mask_scenes$scene)
         
         #Mask
-        mask_layer <- get_mask(mask_scenes, threshold = 0.55)
+        mask_layer <- get_mask(mask_scenes, threshold = threshold)
         
         #Export mask
         directory <- paste0(out_path, "/", 
@@ -119,4 +118,9 @@ create_mask <- function(root_path, mask_doy, out_path, overwrite = FALSE) {
 
 
 #' @example 
-create_mask(root_path, mask_doy, out_path, overwrite = FALSE)
+create_mask(root_path = root_path, 
+            mask_layer = "NDV", 
+            threshold = 0.4, 
+            mask_doy = c(152, 212), 
+            out_path = out_path, 
+            overwrite = FALSE)
