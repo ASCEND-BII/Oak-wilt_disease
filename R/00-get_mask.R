@@ -29,11 +29,14 @@ get_mask <- function(mask_scenes, threshold) {
   #rescale image
   mask_layer <- mask_layer/10000
   
+  #kNDVI
+  mask_layer <- tanh(mask_layer^2)
+  
   #matrix for classification
   clasf_matix <- matrix(c(0.00, threshold, 0,
                           threshold, 1, 1),
-                        ncol = 3,
-                        byrow = TRUE)
+                          ncol = 3,
+                          byrow = TRUE)
   
   #mask raster
   mask_layer <- classify(mask_layer, 

@@ -84,34 +84,27 @@ create_mask <- function(root_path, mask_layer = "NDV", threshold = 0.4, mask_doy
       ###Mask-------------------------------------------------------------------
       mask_scenes <- subset(sub_year, doy >= mask_doy[1] & doy <= mask_doy[2])
       
-      if(length(mask_scenes) >= 3) {
-        
-        mask_scenes <- paste0(root_path, "/", 
-                              mask_scenes$tile, "/", mask_scenes$scene)
-        
-        #Mask
-        mask_layer <- get_mask(mask_scenes, threshold = threshold)
-        
-        #Export mask
-        directory <- paste0(out_path, "/", 
-                            unique_tile[i])
-        
-        #Create directory
-        if(!dir.exists(directory)) {
-          dir.create(directory)
-        }
-        
-        writeRaster(mask_layer, 
-                    layer_name, 
-                    names = "mask", 
-                    overwrite=TRUE,
-                    NAflag = -9999)
-        
-      } else {
-        
-        cat(paste0("No ", unique_tile[i], " for ", unique_years[ii]))
-        
+      mask_scenes <- paste0(root_path, "/", 
+                            mask_scenes$tile, "/", mask_scenes$scene)
+      
+      #Mask
+      mask_layer <- get_mask(mask_scenes, threshold = threshold)
+      
+      #Export mask
+      directory <- paste0(out_path, "/", 
+                          unique_tile[i])
+      
+      #Create directory
+      if(!dir.exists(directory)) {
+        dir.create(directory)
       }
+      
+      writeRaster(mask_layer, 
+                  layer_name, 
+                  names = "mask", 
+                  overwrite=TRUE,
+                  NAflag = -9999)
+      
     }
   }
 }
