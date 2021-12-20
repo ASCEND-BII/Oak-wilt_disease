@@ -5,7 +5,7 @@
 #-------------------------------------------------------------------------------
 # Source load
 
-source("R/00-path_scenes.R")
+source("R/00-path_fraction.R")
 source("R/00-fun_slope.R")
 
 #-------------------------------------------------------------------------------
@@ -25,11 +25,9 @@ library(terra)
 #' @param overwrite if the file exist, do you want to create it again?
 #' @param threads: the number of threads to use for parallel processing
 
-root_path <- "/media/antonio/Work/Oak-wilt/level3_sen3"
+root_path <- "/media/antonio/Work/Oak-wilt/level4_sen2"
 evaluation_doy <- c(166, 258) #May to August
-band_select <- "KNV"
-mask_path <- "/media/antonio/Work/Oak-wilt/level4_mask" 
-out_path <- "/media/antonio/Work/Oak-wilt/level4_sen2"
+out_path <- "/media/antonio/Work/Oak-wilt/level5_sen2"
 threads <- 32
 
 #-------------------------------------------------------------------------------
@@ -37,23 +35,13 @@ threads <- 32
 trends_sen2 <- function(root_path, evaluation_doy, band_select, mask_path, out_path, overwrite = FALSE, threads) {
   
   #Get scenes to work with
-  frame <- path_scenes(root_path)
-  
-  #Subset
-  frame <- frame[band == band_select]
+  frame <- path_fraction(root_path)
   
   #Unique tiles
   unique_tile <- unique(frame$tile)
   
   #Unique years
   unique_years <- unique(frame$year)
-  
-  #Look for mask
-  mask_files <- path_scenes(mask_path)
-  mask_files <- mask_files[, 1:2]
-  mask_files <- mask_files[, year := strsplit(scene, "_")[[1]][1], 
-                           by = seq_along(1:nrow(mask_files))]
-  mask_files$year <- as.integer(mask_files$year)
   
   #Progress bar
   pb <- txtProgressBar(min = 1, 
@@ -84,7 +72,6 @@ trends_sen2 <- function(root_path, evaluation_doy, band_select, mask_path, out_p
         slope_name <- paste0(out_path, "/", 
                               unique_tile[i], "/", 
                               unique_years[ii], "_", 
-                              band_select, "_",
                               "slope", ".tif")
         
         exists_layer <- file.exists(slope_name)
@@ -92,11 +79,6 @@ trends_sen2 <- function(root_path, evaluation_doy, band_select, mask_path, out_p
         if(exists_layer == TRUE & overwrite == FALSE) {
           next
         } 
-        
-        ###Mask-----------------------------------------------------------------
-        mask <- mask_files[tile == unique_tile[i] & year == unique_years[ii]]
-        mask_name <- paste0(mask_path, "/", mask$tile, "/", mask$scene)
-        mask_layer  <- rast(mask_name)
         
         ###Trend----------------------------------------------------------------
         #Period of interest
@@ -110,13 +92,6 @@ trends_sen2 <- function(root_path, evaluation_doy, band_select, mask_path, out_p
         
         #Create a raster stack
         scenes <- rast(trends_scenes)
-        
-        #Apply mask
-        scenes_masked <- mask(scenes,
-                              mask_layer,
-                              maskvalues= 0)
-        #Scale back
-        scenes_masked <- scenes_masked/10000
         
         #Estimate trends
         trend_layer <- app(scenes_masked, 
