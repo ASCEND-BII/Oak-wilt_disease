@@ -40,9 +40,13 @@ vignettes/*.pdf
 
 #Figures
 *.jpeg
+*.jpg
 *.tif
 *.tiff
 
 #ASCII files
 *.csv
 *.txt
+
+#.db file
+.db
