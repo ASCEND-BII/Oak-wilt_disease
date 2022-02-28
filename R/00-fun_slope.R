@@ -20,7 +20,7 @@ fun_slope <- function(y, date) {
     r <- rep(NA, 3)
     
     #linear models
-    m <- lm(y ~ date, na.action = na.omit)
+    m <- lm(healty ~ date, na.action = na.omit)
     
     r[1] <- summary(m)$coefficients[2] #slope
     r[2] <- summary(m)$coefficients[1] #sd slope
