@@ -13,83 +13,53 @@
   "bands" : {
     "BLUE": {
       "pattern": ".*\\.tif",
-      "type": "Int16",
-      "scale" : 10000,
       "band" : 1,
-      "nodata" : -9999,
-      "scale" : 10000
+      "nodata" : -9999
     },
     "GREEN": {
       "pattern": ".*\\.tif",
-      "type": "Int16",
-      "scale" : 10000,
       "band" : 2,
-      "nodata" : -9999,
-      "scale" : 10000
+      "nodata" : -9999
     },
     "RED": {
       "pattern": ".*\\.tif",
-      "type": "Int16",
-      "scale" : 10000,
       "band" : 3,
-      "nodata" : -9999,
-      "scale" : 10000
+      "nodata" : -9999
     },
     "REDEDGE1": {
       "pattern": ".*\\.tif",
-      "type": "Int16",
-      "scale" : 10000,
       "band" : 4,
-      "nodata" : -9999,
-      "scale" : 10000
+      "nodata" : -9999
     },
     "REDEDGE2": {
       "pattern": ".*\\.tif",
-      "type": "Int16",
-      "scale" : 10000,
       "band" : 5,
-      "nodata" : -9999,
-      "scale" : 10000
+      "nodata" : -9999
     },
     "REDEDGE3": {
       "pattern": ".*\\.tif",
-      "type": "Int16",
-      "scale" : 10000,
       "band" : 6,
-      "nodata" : -9999,
-      "scale" : 10000
+      "nodata" : -9999
     },
     "BROADNIR": {
       "pattern": ".*\\.tif",
-      "type": "Int16",
-      "scale" : 10000,
       "band" : 7,
-      "nodata" : -9999,
-      "scale" : 10000
+      "nodata" : -9999
     },
     "NIR": {
       "pattern": ".*\\.tif",
-      "type": "Int16",
-      "scale" : 10000,
       "band" : 8,
-      "nodata" : -9999,
-      "scale" : 10000
+      "nodata" : -9999
     },
     "SWIR1": {
       "pattern": ".*\\.tif",
-      "type": "Int16",
-      "scale" : 10000,
       "band" : 9,
-      "nodata" : -9999,
-      "scale" : 10000
+      "nodata" : -9999
     },
     "SWIR2": {
       "pattern": ".*\\.tif",
-      "type": "Int16",
-      "scale" : 10000,
       "band" : 10,
-      "nodata" : -9999,
-      "scale" : 10000
+      "nodata" : -9999
     }
   }
 }

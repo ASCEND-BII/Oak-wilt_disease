@@ -1,5 +1,5 @@
 ################################################################################
-##### Estimation of trends using Sentinel-2 time series derived from FORCE
+##### Estimation of trends from vegetation indices
 ################################################################################
 
 #-------------------------------------------------------------------------------
@@ -12,7 +12,7 @@ source("R/00-fun_slope.R")
 # Libraries
 
 library(data.table)
-library(terra)
+library(stars)
 
 #-------------------------------------------------------------------------------
 #Arguments
