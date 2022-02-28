@@ -10,22 +10,14 @@
 
 #-------------------------------------------------------------------------------
 #Functions
-fun_slope <- function(y, date) { 
-  
-  if(all(is.na(y))) {
-    NA
+fun_slope <- function(x, doy) {
+
+  if (length(x[x = !is.na(x)]) < 3) {
+    NA_real_
+    
   } else {
     
-    #object to return
-    r <- rep(NA, 3)
+    lm(tanh(x^2) ~ doy)$coefficients[[2]]
     
-    #linear models
-    m <- lm(y ~ date, na.action = na.omit)
-    
-    r[1] <- summary(m)$coefficients[2] #slope
-    r[2] <- summary(m)$coefficients[1] #sd slope
-    r[3] <- summary(m)$r.squared #r2
-    
-    return(r[1])
   }
 }
