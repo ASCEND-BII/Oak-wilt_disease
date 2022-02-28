@@ -65,65 +65,60 @@ trends_sen2 <- function(root_path, evaluation_doy, band_select, mask_path, out_p
       #Subset layers for a given year
       sub_year <- subset(sub_tile, year(date) == unique_years[ii])
       
-      if(nrow(sub_year) >= 5) {
-        
-        ###Look for overwrite---------------------------------------------------
-        
-        slope_name <- paste0(out_path, "/", 
-                              unique_tile[i], "/", 
-                              unique_years[ii], "_", 
-                              "slope", ".tif")
-        
-        exists_layer <- file.exists(slope_name)
-        
-        if(exists_layer == TRUE & overwrite == FALSE) {
-          next
-        } 
-        
-        ###Trend----------------------------------------------------------------
-        #Period of interest
-        trends_scenes <- subset(sub_year, 
-                                doy >= evaluation_doy[1] & doy <= evaluation_doy[2])
-        
-        doy <- trends_scenes$doy
-        
-        trends_scenes <- paste0(root_path, "/", trends_scenes$tile, 
-                                "/", trends_scenes$scene)
-        
-        #Create a raster stack
-        scenes <- rast(trends_scenes)
-        
-        #Estimate trends
-        trend_layer <- app(scenes_masked, 
-                           fun = fun_slope,
-                           date = doy,
-                           cores = threads)
-        
-        names(trend_layer) <- "slope"
-        
-        ###Export---------------------------------------------------------------
-        #Look for the directory
-        directory <- paste0(out_path, "/", 
-                            unique_tile[i])
-        
-        #Create directory
-        if(!dir.exists(directory)) {
-          dir.create(directory)
-        }
-        
-        #Export raster
-        writeRaster(trend_layer, 
-                    slope_name, 
-                    names = "slope", 
-                    overwrite=TRUE,
-                    NAflag = -9999)
-        
-        #Release memory -just in case-
-        gc()
-        
-      } else{
-        cat(paste0("No ", unique_tile[i], " for ", unique_years[ii]))
+      ###Look for overwrite---------------------------------------------------
+      
+      slope_name <- paste0(out_path, "/", 
+                           unique_tile[i], "/", 
+                           unique_years[ii], "_", 
+                           "slope", ".tif")
+      
+      exists_layer <- file.exists(slope_name)
+      
+      if(exists_layer == TRUE & overwrite == FALSE) {
+        next
+      } 
+      
+      ###Trend----------------------------------------------------------------
+      #Period of interest
+      trends_scenes <- subset(sub_year, 
+                              doy >= evaluation_doy[1] & doy <= evaluation_doy[2])
+      
+      doy <- trends_scenes$doy
+      
+      trends_scenes <- paste0(root_path, "/", trends_scenes$tile, 
+                              "/", trends_scenes$scene)
+      
+      #Create a raster stack
+      scenes <- rast(trends_scenes)
+      
+      #Estimate trends
+      trend_layer <- app(scenes_masked, 
+                         fun = fun_slope,
+                         date = doy,
+                         cores = threads)
+      
+      names(trend_layer) <- "slope"
+      
+      ###Export---------------------------------------------------------------
+      #Look for the directory
+      directory <- paste0(out_path, "/", 
+                          unique_tile[i])
+      
+      #Create directory
+      if(!dir.exists(directory)) {
+        dir.create(directory)
       }
+      
+      #Export raster
+      writeRaster(trend_layer, 
+                  slope_name, 
+                  names = "slope", 
+                  overwrite=TRUE,
+                  NAflag = -9999)
+      
+      #Release memory -just in case-
+      gc()
+      
     }
   }
 }
