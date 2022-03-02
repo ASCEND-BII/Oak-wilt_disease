@@ -5,7 +5,7 @@
 #-------------------------------------------------------------------------------
 # Source load
 
-source("R/00-path_scenes.R")
+source("R/00-path_vi_scenes.R")
 
 #-------------------------------------------------------------------------------
 # Libraries
@@ -21,17 +21,17 @@ library(terra)
 #' @param tile_sel select the tile of interest
 #' @param layer select the layer/band of interest
 
-root_path <- "/media/antonio/Work/Oak-wilt/level3_sen3"
-points <- fread("/media/antonio/Work/Oak-wilt/misc/oak_trees/test.csv")
-tile_sel <- "X0009_Y0014"
-layer <- "KNV"
+root_path <- "/media/antonio/antonio_ssd/level3"
+points <- fread("/home/antonio/Documents/GIS/oak_presentation.csv")
+tile_sel <- "X0016_Y0024"
+layer <- "N1N"
 
 #-------------------------------------------------------------------------------
 #Functions
 poi_extraction <- function(root_path, points, tile_sel, layer) {
   
-  frame <- path_scenes(root_path)
-  frame <- subset(frame, band == layer)
+  frame <- path_vi_scenes(root_path)
+  frame <- subset(frame, VI == layer)
   frame <- subset(frame, tile == tile_sel)
   
   scenes <- paste0(root_path, "/", frame$tile, "/", frame$scene)
@@ -45,15 +45,16 @@ poi_extraction <- function(root_path, points, tile_sel, layer) {
   
   #Extract values
   values <- terra::extract(scenes_rast, xy, xy = T, method = "simple")
-  values <- as.data.table(cbind(values, points[,3]))
-  frame <- melt(values, id.vars = c("ID", "x", "y", "Status"),
-                variable.name = "date", value.name = "layer")
-  frame$date <- as.Date(as.character(frame$date))
-  frame <- na.exclude(frame)
-  frame$layer <- frame$layer/10000
+  values <- as.data.table(cbind(values, points[,2]))
+  frame_melt <- melt(values, id.vars = c("ID", "x", "y", "condition"),
+                variable.name = "date", value.name = "value")
+  frame_melt$date <- as.Date(as.character(frame_melt$date))
+  frame_melt <- na.exclude(frame_melt)
+  frame_melt$value <- frame_melt$value/10000
   
-  frame <- frame[order(ID, date)]
+  frame_melt <- frame_melt[order(ID, date, condition)]
   
   return(frame)
+  
 }
 
