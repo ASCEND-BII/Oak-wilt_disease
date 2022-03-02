@@ -6,6 +6,7 @@
 # Libraries
 
 library(data.table)
+library(lubridate)
 
 #-------------------------------------------------------------------------------
 #Arguments
@@ -16,7 +17,7 @@ root_path <- "/media/antonio/antonio_ssd/level3"
 #-------------------------------------------------------------------------------
 #Functions
 
-path_fraction <- function(root_path) {
+path_vi_scenes <- function(root_path) {
   
   #Search for paths
   files <- list.files(path = root_path, 
@@ -31,12 +32,13 @@ path_fraction <- function(root_path) {
                              byrow=TRUE), stringsAsFactors=FALSE)
   colnames(frame) <- c("tile", "scene")
   
-  #Get date
+  #Get year, month, day, date, and doy
   frame[, year := substr(scene, 40, 43), by = seq_along(1:nrow(frame))]
   frame[, month := substr(scene, 44, 45), by = seq_along(1:nrow(frame))]
   frame[, day := substr(scene, 46, 47), by = seq_along(1:nrow(frame))]
   frame$date <- paste(frame$year, frame$month, frame$day, sep = "-")
   frame$date <- as.Date(frame$date)
+  frame$doy <- yday(frame$date)
   
   #Get VI
   frame[, VI := substr(scene, 32, 34), by = seq_along(1:nrow(frame))]

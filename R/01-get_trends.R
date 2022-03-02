@@ -26,13 +26,13 @@ library(parallel)
 #' @param threads: the number of threads to use for parallel processing
 
 root_path <- "/media/antonio/antonio_ssd/level3"
-range_doy <- c(182, 243) #July to August
+range_doy <- c(166, 258) #June 15 to August 31 258
 out_path <- "/media/antonio/antonio_ssd/level4"
-threads <- 4
+threads <- 26
 
 #-------------------------------------------------------------------------------
 #Function
-trends_vi <- function(root_path, out_path, vi = "N1N", range_doy, overwrite = FALSE, threads = 4) {
+trends_vi <- function(root_path, out_path, vi = "N1N", range_doy, overwrite = TRUE, threads = 16) {
   
   #Get scenes to work with
   frame <- path_vi_scenes(root_path)
@@ -45,7 +45,7 @@ trends_vi <- function(root_path, out_path, vi = "N1N", range_doy, overwrite = FA
   
   #Subset by doy
   frame <- subset(frame, doy >= range_doy[1] &
-                         doy <= range_doy[2])
+                    doy <= range_doy[2])
   
   #Progress bar
   pb <- txtProgressBar(min = 1, 
@@ -56,6 +56,10 @@ trends_vi <- function(root_path, out_path, vi = "N1N", range_doy, overwrite = FA
   #Loop over tiles
   for(i in 1:length(unique_tile)) {
     
+    #Progress
+    setTxtProgressBar(pb, n)
+    n <- n+1
+    
     #Subset to work with a given tile
     sub_tile <- subset(frame, tile == unique_tile[i])
     
@@ -65,10 +69,6 @@ trends_vi <- function(root_path, out_path, vi = "N1N", range_doy, overwrite = FA
     #Loop over years
     #Start at 2 to exclude 2017
     for(ii in 2:length(unique_years)) { 
-      
-      #Progress
-      setTxtProgressBar(pb, n)
-      n <- n+1
       
       #Subset layers for a given year
       sub_year <- subset(sub_tile, year(date) == unique_years[ii])
@@ -85,7 +85,7 @@ trends_vi <- function(root_path, out_path, vi = "N1N", range_doy, overwrite = FA
                                   along = list(doy = sub_year$doy))
         
         ### Trend---------------------------------------------------------------
-        cls <- makeCluster(4, type = "FORK")
+        cls <- makeCluster(threads, type = "FORK")
         
         trend <- st_apply(X = adrop(stars_files), 
                           MARGIN = c(1,2), 
@@ -93,6 +93,7 @@ trends_vi <- function(root_path, out_path, vi = "N1N", range_doy, overwrite = FA
                           doy = sub_year$doy,
                           CLUSTER = cls)
         stopCluster(cls)
+        gc()
         
         ### Export -------------------------------------------------------------
         export_name <- paste0(out_path, "/", 
@@ -112,10 +113,4 @@ trends_vi <- function(root_path, out_path, vi = "N1N", range_doy, overwrite = FA
 }
 
 #' @example 
-trends_vi(root_path, out_path, vi = "N1N", range_doy, overwrite = FALSE, threads = 4)
-
-write_stars(
-  trend,
-  dsn = "test.tif",
-  layer = 1)
-
+trends_vi(root_path, out_path, vi = "N1N", range_doy, overwrite = TRUE, threads = 26)
