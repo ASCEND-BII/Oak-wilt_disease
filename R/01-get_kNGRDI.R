@@ -1,0 +1,87 @@
+################################################################################
+##### Estimation of kNGRDI 
+################################################################################
+
+#-------------------------------------------------------------------------------
+# Source load
+
+source("R/00-path_vi_scenes.R")
+
+#-------------------------------------------------------------------------------
+# Libraries
+
+library(data.table)
+library(terra)
+library(doParallel)
+library(foreach)
+
+#-------------------------------------------------------------------------------
+#Arguments
+
+#' @param root_path: select the root path of where the scenes are located
+#' @param out_path: path of the outputs
+#' @param threads: the number of threads to use for parallel processing
+
+root_path <- "/media/antonio/antonio_ssd/FORCE/level3"
+out_path <- "/media/antonio/antonio_ssd/FORCE/level4"
+threads <- 26
+
+
+#-------------------------------------------------------------------------------
+#Arguments
+
+get_kNGRDI <- function(root_path, out_path, threads = 26) {
+  
+  #Get scenes to work with
+  frame <- path_vi_scenes(root_path)
+  
+  #Get just RED and GRN
+  frame <- subset(frame, VI == "RED" |  VI == "GRN" )
+  
+  #Unique date and tile
+  frame[, unique := .GRP, by=.(tile,date)]
+  
+  #N scenes
+  n_scenes <- uniqueN(frame$unique)
+  
+  # Set up cluster
+  cl <- makeCluster(threads, type = "FORK")
+  registerDoParallel(cl)
+  
+  # Loop over scenes to estimate kNDVI
+  foreach(i = 1:n_scenes,
+          .packages = c("terra"),
+          .inorder = F) %dopar% {
+          
+          #Files
+          GREEN <- frame[VI == "GRN" & unique == i]
+          RED <- frame[VI == "RED" & unique == i]
+          
+          #Read raster
+          rGREEN <- rast(paste0(root_path, "/", GREEN$tile[1], "/", GREEN$scene[1]))
+          rRED <- rast(paste0(root_path, "/", RED$tile[1], "/", RED$scene[1]))
+          
+          #Get index
+          kNGRDI <- tanh(((rGREEN - rRED)/(rGREEN + rRED))^2)
+          
+          #export name
+          export_name <- paste0(out_path, "/", GREEN$tile[1], "/", GREEN$date[1], "_kNGRDI.tif")
+          
+          #write raster
+          writeRaster(kNGRDI, 
+                      export_name, 
+                      overwrite = TRUE, 
+                      names = GREEN$date[1],
+                      NAflag = -9999)
+          
+          #Remove residuals
+          rm(list = c("GREEN", "RED", "rGREEN", "rRED", "kNGRDI", "export_name"))
+          gc()
+          
+          }
+  
+  #Stop cluster
+  stopCluster(cl)
+  gc()
+  
+}
