@@ -41,7 +41,7 @@ path_vi_scenes2 <- function(root_path) {
   frame$doy <- yday(frame$date)
   
   #Get VI
-  frame[, VI := substr(scene, 12, 17), by = seq_along(1:nrow(frame))]
+  frame[, VI := substr(scene, 12, 16), by = seq_along(1:nrow(frame))]
   
   #Order 
   frame <- frame[order(VI, tile, date)]
