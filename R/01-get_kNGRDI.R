@@ -62,17 +62,18 @@ get_kNGRDI <- function(root_path, out_path, threads = 26) {
           rRED <- rast(paste0(root_path, "/", RED$tile[1], "/", RED$scene[1]))
           
           #Get index
-          kNGRDI <- tanh(((rGREEN - rRED)/(rGREEN + rRED))^2)
+          kNGRDI <- round(((rGREEN - rRED)/(rGREEN + rRED)) * 10000, 0)
           
           #export name
-          export_name <- paste0(out_path, "/", GREEN$tile[1], "/", GREEN$date[1], "_kNGRDI.tif")
+          export_name <- paste0(out_path, "/", GREEN$tile[1], "/", GREEN$date[1], "_NGRDI.tif")
           
           #write raster
           writeRaster(kNGRDI, 
                       export_name, 
                       overwrite = TRUE, 
                       names = GREEN$date[1],
-                      NAflag = -9999)
+                      datatype = "INT16S",
+                      NAflag = -999999)
           
           #Remove residuals
           rm(list = c("GREEN", "RED", "rGREEN", "rRED", "kNGRDI", "export_name"))
