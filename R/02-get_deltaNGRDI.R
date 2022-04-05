@@ -6,14 +6,14 @@
 # Source load
 
 source("R/00-path_vi_scenes2.R")
-source("R/00-fun_slope.R")
 
 #-------------------------------------------------------------------------------
 # Libraries
 
 library(data.table)
 library(terra)
-library(parallel)
+library(foreach)
+library(doParallel)
 
 #-------------------------------------------------------------------------------
 #Arguments
@@ -24,15 +24,15 @@ library(parallel)
 #' @param range_doy2: time 2 range
 #' @param threads: the number of threads to use for parallel processing
 
-root_path <- "J:/FORCE/level4"
-range_doy1 <- c(152, 166) #June 1 to 15
-range_doy2 <- c(229, 243) #August 15 to 31
-out_path <- "J:/FORCE/level5"
-threads <- 16
+root_path <- "/media/antonio/antonio_ssd/FORCE/level4"
+range_doy1 <- c(152, 181) #June 1 to 15
+range_doy2 <- c(222, 232) #August 15 to 31
+out_path <- "/media/antonio/antonio_ssd/FORCE/level5"
+threads <- 28
 
 #-------------------------------------------------------------------------------
 #Function
-trends_vi <- function(root_path, out_path, range_doy, threads = 16) {
+trends_vi <- function(root_path, out_path, range_doy1, range_doy2, threads = 16) {
   
   #Get scenes to work with
   frame <- path_vi_scenes2(root_path)
@@ -51,27 +51,19 @@ trends_vi <- function(root_path, out_path, range_doy, threads = 16) {
   #N set of observations
   n_scenes <- uniqueN(frame$unique)
   
-  #Matrix of weigths
-  weigths <- c(1, 1, -1, 1, 1, 
-               1, -1, -1, -1, 1,
-               -1, -1, -8, -1, -1,
-               1, -1, -1, -1, 1,
-               1, 1, -1, 1, 1)
-  wmatrix <- matrix(a, nc=5, nr=5)
+  #Matrix of weights
+  wmatrix <- -matrix(1, nc=3, nr=3)
   
-  # Set up cluster
-  #cl <- makeCluster(threads, type = "FORK")
-  #registerDoParallel(cl)
+  #Set up cluster
+  cl <- makeCluster(threads, type = "FORK")
+  registerDoParallel(cl)
   
-  #Loop over tiles
+  
   # Loop over scenes to estimate kNDVI
-  #foreach(i = 1:n_scenes,
-  #        .packages = c("stars"),
-  #        .export = c("fun_slope"),
-  #        .inorder = F) %dopar% {
+  foreach(i = 1:n_scenes,
+          .packages = c("terra", "data.table"),
+          .inorder = F) %dopar% {
   
-  for(i in 1:n_scenes) {
-    
     #Get set of observations
     sub_frame <- subset(frame, unique == i)
     time1 <- subset(sub_frame, time == 1)
@@ -82,13 +74,13 @@ trends_vi <- function(root_path, out_path, range_doy, threads = 16) {
     
     #Finish if there is not different periods
     if(n_times == 1) {
-      break
+      next
     }
     
     #Get rasters
     rtime1 <- rast(paste0(root_path, "/", 
-                         time1$tile, "/", 
-                         time1$scene))
+                          time1$tile, "/", 
+                          time1$scene))
     
     rtime2 <- rast(paste0(root_path, "/", 
                          time2$tile, "/", 
@@ -103,29 +95,33 @@ trends_vi <- function(root_path, out_path, range_doy, threads = 16) {
     
     #Kernel application
     cov_dNRGI <- focal(delta_NGRDI,
-                        w = wmatrix)
+                       w = wmatrix,
+                       fun = sum)
+    cov_dNRGI <- -(delta_NGRDI*8)/cov_dNRGI
+    
     
     #Export name
     export_name <- paste0(out_path, "/", 
                           sub_frame$tile[1], "/",
                           sub_frame$year[1], 
-                          "_con_dNGRDI.tif")
+                          "new_conv_NGRDI.tif")
     
     #Export
     writeRaster(x = cov_dNRGI,
                 filename = export_name,
-                overwrite = TRUE)
+                names = sub_frame$year[1],
+                datatype = "INT16S",
+                NAflag = -999999)
     
     #Remove residuals
     rm(list = c("sub_frame", "files", "stars_files", "trend", "export_name"))
     gc()
     
     }
-  }
-  
+
   #Stop cluster
-  #stopCluster(cl)
-  #gc()
+  stopCluster(cl)
+  gc()
   
 }
 
