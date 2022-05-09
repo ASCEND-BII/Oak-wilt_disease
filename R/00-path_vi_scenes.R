@@ -33,15 +33,19 @@ path_vi_scenes <- function(root_path) {
   colnames(frame) <- c("tile", "scene")
   
   #Get year, month, day, date, and doy
-  frame[, year := substr(scene, 40, 43), by = seq_along(1:nrow(frame))]
-  frame[, month := substr(scene, 44, 45), by = seq_along(1:nrow(frame))]
-  frame[, day := substr(scene, 46, 47), by = seq_along(1:nrow(frame))]
+  frame[, date2 := strsplit(scene, "_")[[1]][8], by = seq_along(1:nrow(frame))]
+  frame[, year := substr(date2, 1, 4), by = seq_along(1:nrow(frame))]
+  frame[, month := substr(date2, 5, 6), by = seq_along(1:nrow(frame))]
+  frame[, day := substr(date2, 7, 8), by = seq_along(1:nrow(frame))]
   frame$date <- paste(frame$year, frame$month, frame$day, sep = "-")
   frame$date <- as.Date(frame$date)
   frame$doy <- yday(frame$date)
   
+  #Frame
+  frame <- frame[, c(1, 2, 4, 5, 6, 7, 8)]
+  
   #Get VI
-  frame[, VI := substr(scene, 32, 34), by = seq_along(1:nrow(frame))]
+  frame[, VI := strsplit(scene, "_")[[1]][6], by = seq_along(1:nrow(frame))]
   
   #Order 
   frame <- frame[order(VI, tile, date)]
