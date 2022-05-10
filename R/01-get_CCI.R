@@ -88,3 +88,10 @@ get_CCI <- function(root_path, out_path, threads = 26) {
   gc()
   
 }
+#' @example 
+
+root_path <- "F:/FORCE/level3"
+out_path <- "F:/FORCE/level3"
+threads <- 100
+
+get_CCI(root_path, out_path, threads = threads)

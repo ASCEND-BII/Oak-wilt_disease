@@ -33,7 +33,7 @@ threads <- 6
 
 #-------------------------------------------------------------------------------
 #Function
-get_dVI <- function(root_path, out_path, 
+get_delta_vi <- function(root_path, out_path, 
                          range_doy1, range_doy2, 
                          threshold = 5000, threads = 5) {
   
@@ -205,4 +205,4 @@ get_dVI <- function(root_path, out_path,
 }
 
 #' @example 
-get_dVI(root_path, out_path, range_doy, threshold = 5000, threads = 100)
+get_delta_vi(root_path, out_path, range_doy, threads = 26)
