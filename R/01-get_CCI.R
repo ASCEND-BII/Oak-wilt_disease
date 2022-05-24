@@ -22,9 +22,9 @@ library(foreach)
 #' @param out_path: path of the outputs
 #' @param threads: the number of threads to use for parallel processing
 
-root_path <- "F:/FORCE/level3"
-out_path <- "F:/FORCE/level3"
-threads <- 10
+#root_path <- "F:/FORCE/level3"
+#out_path <- "F:/FORCE/level3"
+#threads <- 10
 
 #-------------------------------------------------------------------------------
 #Arguments
@@ -89,9 +89,7 @@ get_CCI <- function(root_path, out_path, threads = 26) {
   
 }
 #' @example 
-
-root_path <- "F:/FORCE/level3"
-out_path <- "F:/FORCE/level3"
+root_path <- "/home/cavender/shared/oak-wilt/level3"
+out_path <- "/home/cavender/shared/oak-wilt/level3"
 threads <- 100
-
-get_CCI(root_path, out_path, threads = threads)
+get_CCI(root_path, out_path, threads)

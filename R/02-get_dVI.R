@@ -33,7 +33,7 @@ library(doParallel)
 
 #-------------------------------------------------------------------------------
 #Function
-get_delta_vi <- function(root_path, out_path, 
+get_dVI <- function(root_path, out_path, 
                          range_doy1, range_doy2, 
                          threshold = 5000, threads = 5) {
   
@@ -198,4 +198,10 @@ get_delta_vi <- function(root_path, out_path,
 }
 
 #' @example 
-get_delta_vi(root_path, out_path, range_doy, threads = 26)
+root_path <- "/home/cavender/shared/oak-wilt/level3"
+range_doy1 <- c(135, 166)
+range_doy2 <- c(222, 232)
+out_path <- "/home/cavender/shared/oak-wilt/level4"
+threshold <- 5000
+threads <- 6
+get_dVI(root_path, out_path, range_doy1, range_doy2, threshold, threads)
