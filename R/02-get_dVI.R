@@ -24,12 +24,12 @@ library(doParallel)
 #' @param range_doy2: time 2 range
 #' @param threads: the number of threads to use for parallel processing
 
-root_path <- "F:/FORCE/level3"
-range_doy1 <- c(135, 166)
-range_doy2 <- c(222, 232) #August 10 to 24
-out_path <- "F:/FORCE/level4"
-threshold = 5000
-threads <- 6
+#root_path <- "F:/FORCE/level3"
+#range_doy1 <- c(135, 166)
+#range_doy2 <- c(222, 232) #August 10 to 24
+#out_path <- "F:/FORCE/level4"
+#threshold <- 5000
+#threads <- 6
 
 #-------------------------------------------------------------------------------
 #Function
@@ -79,12 +79,6 @@ get_delta_vi <- function(root_path, out_path,
     
     #Finish if there is not different periods
     if(n_times == 2) {
-      
-      #NDVI for mask ---------------------------------
-      NDVI <- rast(paste0(root_path, "/",
-                          time1$tile[1], "/",
-                          time1[VI == "NDV", scene]))
-      NDVI <- mean(NDVI, na.rm = T)
       
       #CCI -------------------------------------------
       CCI_1 <- rast(paste0(root_path, "/",
@@ -137,53 +131,52 @@ get_delta_vi <- function(root_path, out_path,
       inf <- is.infinite(values(delta_CRE))
       values(delta_CRE)[inf == TRUE] <- NA
       
+      #Focal observations
+      fCCI <- focal(delta_CCI, 
+                    w = wmatrix,
+                    fun = "sum",
+                    na.rm = TRUE)
+      
+      fNDW <- focal(delta_NDW, 
+                    w = wmatrix,
+                    fun = "sum",
+                    na.rm = TRUE)
+      
+      fCRE <- focal(delta_CRE, 
+                    w = wmatrix,
+                    fun = "sum",
+                    na.rm = TRUE)
+      
       # Mask application -----------------------------
+      # Read NDVI
+      NDVI <- rast(paste0(root_path, "/",
+                          time1$tile[1], "/",
+                          time1[VI == "NDV", scene]))
+      
+      #Get mean
+      NDVI <- mean(NDVI, na.rm = T)
+      
+      #Look for threshold
       mask <- values(NDVI) >= threshold
       values(NDVI)[mask == TRUE] <- 1
       values(NDVI)[mask != TRUE] <- 0
       
-      #Delta with mask
-      dCCI <- mask(delta_CCI, NDVI, maskvalues = 0)
-      dNDW <- mask(delta_NDW, NDVI, maskvalues = 0)
-      dCRE <- mask(delta_CRE, NDVI, maskvalues = 0)
+      #Apply mask
+      dCCI <- mask(fCCI, NDVI, maskvalues = 0)
+      dNDW <- mask(fNDW, NDVI, maskvalues = 0)
+      dCRE <- mask(fCRE, NDVI, maskvalues = 0)
       
-      #Focal observations
-      fCCI <- focal(dCCI, 
-                    w = wmatrix,
-                    fun = "sum",
-                    na.rm = TRUE)
+      #Export ----------------------------------------
+      dVI <- c(dCCI, dNDW, dCRE)
       
-      fNDW <- focal(dNDW, 
-                    w = wmatrix,
-                    fun = "sum",
-                    na.rm = TRUE)
-      
-      fCRE <- focal(dCRE, 
-                    w = wmatrix,
-                    fun = "sum",
-                    na.rm = TRUE)
-      
-      #Export name
       export_name <- paste0(out_path, "/", 
                             sub_frame$tile[1], "/",
-                            sub_frame$year[1], "_")
+                            sub_frame$year[1], "_dVI.tif")
       
       #Export
-      writeRaster(x = fCCI,
-                  filename = paste0(export_name, "dCCI.tif"),
-                  names = c("fCCI"),
-                  NAflag = NA,
-                  overwrite=TRUE)
-      
-      writeRaster(x = fNDW,
-                  filename = paste0(export_name, "dNDW.tif"),
-                  names = c("fNDW"),
-                  NAflag = NA,
-                  overwrite=TRUE)
-      
-      writeRaster(x = fCRE,
-                  filename = paste0(export_name, "dCRE.tif"),
-                  names = c("fCRE"),
+      writeRaster(x = dVI,
+                  filename = export_name,
+                  names = c("dCCI", "dNDW", "dCRE"),
                   NAflag = NA,
                   overwrite=TRUE)
       
