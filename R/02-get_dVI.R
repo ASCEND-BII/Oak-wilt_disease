@@ -204,4 +204,5 @@ range_doy2 <- c(222, 232)
 out_path <- "/home/cavender/shared/oak-wilt/level4"
 threshold <- 5000
 threads <- 6
+
 get_dVI(root_path, out_path, range_doy1, range_doy2, threshold, threads)

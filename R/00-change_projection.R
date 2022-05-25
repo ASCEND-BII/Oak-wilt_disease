@@ -1,5 +1,5 @@
 ################################################################################
-##### Estimation of CCI
+##### Change projection
 ################################################################################
 
 #-------------------------------------------------------------------------------
@@ -23,25 +23,27 @@ library(foreach)
 #' @param threads: the number of threads to use for parallel processing
 
 root_path <- "F:/FORCE/level3"
-out_path <- "F:/FORCE/level3"
+out_path <- "F:/FORCE/level3_shifted"
 threads <- 10
 
 #-------------------------------------------------------------------------------
 #Arguments
 
-get_CCI <- function(root_path, out_path, threads = 26) {
+change_projection <- function(root_path, out_path, threads = 26) {
   
   #Get scenes to work with
   frame <- path_vi_scenes(root_path)
   
   #Get just RED and GRN
-  frame <- subset(frame, VI == "RED" |  VI == "GRN" )
+  frame <- subset(frame, VI == "CCI" |  
+                         VI == "CRE" | 
+                         VI == "NDW")
   
   #Unique date and tile
-  frame[, unique := .GRP, by=.(tile, date)]
+  frame <- subset(frame, year == "2019")
   
   #N scenes
-  n_scenes <- uniqueN(frame$unique)
+  n_scenes <- nrow(frame)
   
   # Set up cluster
   cl <- makeCluster(threads, type = "FORK")
@@ -51,36 +53,24 @@ get_CCI <- function(root_path, out_path, threads = 26) {
   foreach(i = 1:n_scenes,
           .packages = c("terra", "data.table"),
           .inorder = F) %dopar% {
-          
-          #Files
-          GREEN <- frame[VI == "GRN" & unique == i]
-          RED <- frame[VI == "RED" & unique == i]
-          
-          #Read raster
-          rGREEN <- rast(paste0(root_path, "/", GREEN$tile[1], "/", GREEN$scene[1]))
-          rRED <- rast(paste0(root_path, "/", RED$tile[1], "/", RED$scene[1]))
-          
-          #Get index
-          CCI <- round(((rGREEN - rRED)/(rGREEN + rRED)) * 10000, 0)
-          
-          #export name
-          export_name <- strsplit(GREEN$scene[1], "GRN")[[1]]
-          export_name <- paste0(out_path, "/", 
-                                GREEN$tile[1], "/", 
-                                export_name[1], "CCI", export_name[2])
-          
-          #write raster
-          writeRaster(CCI, 
-                      export_name, 
-                      overwrite = TRUE, 
-                      names = GREEN$date[1],
-                      datatype = "INT16S",
-                      NAflag = -9999)
-          
-          #Remove residuals
-          rm(list = c("GREEN", "RED", "rGREEN", "rRED", "CCI", "export_name"))
-          gc()
-          
+            
+            #Read raster
+            raster <- rast(paste0(root_path, "/", frame$tile[i], "/", frame$scene[i]))
+            
+            #Project
+            new_raster <- project(raster, "EPSG:26915")
+            
+            #write raster
+            writeRaster(new_raster, 
+                        paste0(out_path, "/", frame$tile[i], "/", frame$scene[i]), 
+                        overwrite = TRUE, 
+                        names = names(new_raster),
+                        NAflag = -9999)
+            
+            #Remove residuals
+            rm(list = c("raster", "new_raster"))
+            gc()
+            
           }
   
   #Stop cluster
@@ -91,6 +81,6 @@ get_CCI <- function(root_path, out_path, threads = 26) {
 #' @example 
 root_path <- "/home/cavender/shared/oak-wilt/level3"
 out_path <- "/home/cavender/shared/oak-wilt/level3"
-threads <- 100
+threads <- 8
 
-get_CCI(root_path, out_path, threads)
+change_projection(root_path, out_path, threads = 6)
