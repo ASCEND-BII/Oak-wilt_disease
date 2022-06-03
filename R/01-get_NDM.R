@@ -1,5 +1,5 @@
 ################################################################################
-##### Estimation of CCI
+##### Estimation of NDM
 ################################################################################
 
 #-------------------------------------------------------------------------------
@@ -29,13 +29,13 @@ threads <- 25
 #-------------------------------------------------------------------------------
 #Arguments
 
-get_CCI <- function(root_path, out_path, threads = 26) {
+get_NDM <- function(root_path, out_path, threads = 26) {
   
   #Get scenes to work with
   frame <- path_vi_scenes(root_path)
   
   #Get just RED and GRN
-  frame <- subset(frame, VI == "RED" |  VI == "GRN" )
+  frame <- subset(frame, VI == "NIR" |  VI == "SW1" )
   
   #Unique date and tile
   frame[, unique := .GRP, by=.(tile, date)]
@@ -51,36 +51,36 @@ get_CCI <- function(root_path, out_path, threads = 26) {
   foreach(i = 1:n_scenes,
           .packages = c("terra", "data.table"),
           .inorder = F) %dopar% {
-          
-          #Files
-          GREEN <- frame[VI == "GRN" & unique == i]
-          RED <- frame[VI == "RED" & unique == i]
-          
-          #Read raster
-          rGREEN <- rast(paste0(root_path, "/", GREEN$tile[1], "/", GREEN$scene[1]))
-          rRED <- rast(paste0(root_path, "/", RED$tile[1], "/", RED$scene[1]))
-          
-          #Get index
-          CCI <- round(((rGREEN - rRED)/(rGREEN + rRED)) * 10000, 0)
-          
-          #export name
-          export_name <- strsplit(GREEN$scene[1], "GRN")[[1]]
-          export_name <- paste0(out_path, "/", 
-                                GREEN$tile[1], "/", 
-                                export_name[1], "CCI", export_name[2])
-          
-          #write raster
-          writeRaster(CCI, 
-                      export_name, 
-                      overwrite = TRUE, 
-                      names = GREEN$date[1],
-                      datatype = "INT16S",
-                      NAflag = -9999)
-          
-          #Remove residuals
-          rm(list = c("GREEN", "RED", "rGREEN", "rRED", "CCI", "export_name"))
-          gc()
-          
+            
+            #Files
+            GREEN <- frame[VI == "NIR" & unique == i]
+            RED <- frame[VI == "SW1" & unique == i]
+            
+            #Read raster
+            rGREEN <- rast(paste0(root_path, "/", GREEN$tile[1], "/", GREEN$scene[1]))
+            rRED <- rast(paste0(root_path, "/", RED$tile[1], "/", RED$scene[1]))
+            
+            #Get index
+            NDM <- round(((rGREEN - rRED)/(rGREEN + rRED)) * 10000, 0)
+            
+            #export name
+            export_name <- strsplit(GREEN$scene[1], "NIR")[[1]]
+            export_name <- paste0(out_path, "/", 
+                                  GREEN$tile[1], "/", 
+                                  export_name[1], "NDM", export_name[2])
+            
+            #write raster
+            writeRaster(NDM, 
+                        export_name, 
+                        overwrite = TRUE, 
+                        names = GREEN$date[1],
+                        datatype = "INT16S",
+                        NAflag = -9999)
+            
+            #Remove residuals
+            rm(list = c("GREEN", "RED", "rGREEN", "rRED", "NDM", "export_name"))
+            gc()
+            
           }
   
   #Stop cluster
@@ -93,4 +93,4 @@ root_path <- "/home/cavender/shared/oak-wilt/level3"
 out_path <- "/home/cavender/shared/oak-wilt/level3"
 threads <- 100
 
-get_CCI(root_path, out_path, threads)
+get_NDM(root_path, out_path, threads)
