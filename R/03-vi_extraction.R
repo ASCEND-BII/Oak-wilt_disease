@@ -21,10 +21,10 @@ library(foreach)
 #' @param out_path: path and name of the .txt outputs
 #' @param threads: the number of threads to use for parallel processing
 
-#root_path <- "F:/FORCE/level3_VI/X0015_Y0024"
-#vector_path <- "F:/FORCE/level3_shifted/training_X0015_0024.gpkg"
-#out_path <- "F:/FORCE/level3_shifted/X0015_0024_VI.txt"
-#threads <- 10
+root_path <- "/media/antonio/antonio_ssd/FORCE/level3_shifted/X0015_Y0024"
+vector_path <- "/media/antonio/antonio_ssd/FORCE/level3_shifted/training_X0015_0024.gpkg"
+out_path <- "/media/antonio/antonio_ssd/FORCE/level3_shifted/X0015_0024_VI.txt"
+threads <- 26
 
 #-------------------------------------------------------------------------------
 #Arguments
@@ -110,6 +110,14 @@ vi_extraction <- function(root_path, vector_path, threads = 26) {
                           
                           #Add date
                           values$date <- CCI$date[1]
+                          
+                          #Remove residuals
+                          rm(list = c("CCI", "rCCI", 
+                                      "CRE", "rCRE", 
+                                      "NDM", "rNDM",
+                                      "NDV", "rNDV",
+                                      "VI"))
+                          gc()
                           
                           #Return
                           return(values)
