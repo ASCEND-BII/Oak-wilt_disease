@@ -55,14 +55,18 @@ change_projection <- function(root_path, out_path, threads = 26) {
           .inorder = F) %dopar% {
             
             #Read raster
-            raster <- rast(paste0(root_path, "/", frame$tile[i], "/", frame$scene[i]))
+            raster <- rast(paste0(root_path, "/", 
+                                  frame$tile[i], "/", 
+                                  frame$scene[i]))
             
             #Project
             new_raster <- project(raster, "EPSG:26915")
             
             #write raster
             writeRaster(new_raster, 
-                        paste0(out_path, "/", frame$tile[i], "/", frame$scene[i]), 
+                        paste0(out_path, "/", 
+                               frame$tile[i], "/", 
+                               frame$scene[i]), 
                         overwrite = TRUE, 
                         names = names(new_raster),
                         NAflag = -9999)

@@ -1,5 +1,5 @@
 ################################################################################
-##### 03 - VI value extraction
+##### 03 - VI value extraction for time series
 ################################################################################
 
 #' @description Batch extraction of values of VI using a vector file 
@@ -21,10 +21,10 @@ library(foreach)
 #' @param out_path: path and name of the .txt outputs
 #' @param threads: the number of threads to use for parallel processing
 
-#root_path <- "F:/FORCE/level3_VI/X0015_Y0024"
-#vector_path <- "F:/FORCE/level3_shifted/training_X0015_0024.gpkg"
-#out_path <- "F:/FORCE/level3_shifted/X0015_0024_VI.txt"
-#threads <- 10
+root_path <- "F:/FORCE/level3_shifted/X0014_Y0024"
+vector_path <- "F:/FORCE/level3_shifted/training_X0014_0024.gpkg"
+out_path <- "F:/FORCE/level3_shifted/X0014_0024_VI.txt"
+threads <- 10
 
 #-------------------------------------------------------------------------------
 #Arguments

@@ -24,18 +24,18 @@ library(doParallel)
 #' @param range_doy2: time 2 range
 #' @param threads: the number of threads to use for parallel processing
 
-#root_path <- "F:/FORCE/level3"
-#range_doy1 <- c(135, 166)
-#range_doy2 <- c(222, 232) #August 10 to 24
-#out_path <- "F:/FORCE/level4"
-#threshold <- 5000
-#threads <- 6
+root_path <- "F:/FORCE/level3_shifted"
+range_doy1 <- c(135, 165)
+range_doy2 <- c(216, 236) #August 10 to 24
+out_path <- "F:/FORCE/level4"
+threshold <- 3500
+threads <- 6
 
 #-------------------------------------------------------------------------------
 #Function
 get_dVI <- function(root_path, out_path, 
-                         range_doy1, range_doy2, 
-                         threshold = 5000, threads = 5) {
+                    range_doy1, range_doy2, 
+                    threshold = 3500, threads = 5) {
   
   #Get scenes to work with
   frame <- path_vi_scenes(root_path)
@@ -49,7 +49,10 @@ get_dVI <- function(root_path, out_path,
   frame <- frame[order(tile, date)]
   
   #VI of interest
-  frame <- subset(frame, VI == "CCI" | VI == "CRE" | VI == "NDW" | VI == "NDV")
+  frame <- subset(frame, VI == "CCI" | 
+                    VI == "CRE" | 
+                    VI == "NDM" | 
+                    VI == "NDV")
   
   #Unique set of observations
   frame[, unique := .GRP, by = .(tile, year)]
@@ -58,7 +61,7 @@ get_dVI <- function(root_path, out_path,
   n_scenes <- uniqueN(frame$unique)
   
   #Matrix of weights
-  wmatrix <- matrix(c(0, -1, 0, -1, 5, -1, 0, -1, 0), nc=3, nr=3)
+  #wmatrix <- matrix(c(0, -1, 0, -1, 5, -1, 0, -1, 0), nc=3, nr=3)
   
   #Set up cluster
   cl <- makeCluster(threads, type = "FORK")
@@ -68,129 +71,132 @@ get_dVI <- function(root_path, out_path,
   foreach(i = 1:n_scenes,
           .packages = c("terra", "data.table"),
           .inorder = F) %dopar% {
-  
-    #Get set of observations
-    sub_frame <- subset(frame, unique == i)
-    time1 <- subset(sub_frame, time == 1)
-    time2 <- subset(sub_frame, time == 2)
-    
-    #logic to skip
-    n_times <- uniqueN(sub_frame$time)
-    
-    #Finish if there is not different periods
-    if(n_times == 2) {
-      
-      #CCI -------------------------------------------
-      CCI_1 <- rast(paste0(root_path, "/",
-                           time1$tile[1], "/",
-                           time1[VI == "CCI", scene]))
-      CCI_1 <- mean(CCI_1, na.rm = T)
-      
-      CCI_2 <- rast(paste0(root_path, "/",
-                           time2$tile[1], "/",
-                           time2[VI == "CCI", scene]))
-      CCI_2 <- mean(CCI_2, na.rm = T)
-      
-      delta_CCI <- round(CCI_2 - CCI_1)
-      
-      #Remove inf
-      inf <- is.infinite(values(delta_CCI))
-      values(delta_CCI)[inf == TRUE] <- NA
-      
-      #NDVW ------------------------------------------
-      NDW_1 <- rast(paste0(root_path, "/",
-                           time1$tile[1], "/",
-                           time1[VI == "NDW", scene]))
-      NDW_1 <- mean(NDW_1, na.rm = T)
-      
-      NDW_2 <- rast(paste0(root_path, "/",
-                           time2$tile[1], "/",
-                           time2[VI == "NDW", scene]))
-      NDW_2 <- mean(NDW_2, na.rm = T)
-      
-      delta_NDW <- round(NDW_2 - NDW_1)
-      
-      #Remove inf
-      inf <- is.infinite(values(delta_NDW))
-      values(delta_NDW)[inf == TRUE] <- NA
-      
-      #CRE -------------------------------------------
-      CRE_1 <- rast(paste0(root_path, "/",
-                           time1$tile[1], "/",
-                           time1[VI == "CRE", scene]))
-      CRE_1 <- mean(CRE_1, na.rm = T)
-      
-      CRE_2 <- rast(paste0(root_path, "/",
-                           time2$tile[1], "/",
-                           time2[VI == "CRE", scene]))
-      CRE_2 <- mean(CRE_2, na.rm = T)
-      
-      delta_CRE <- round(CRE_2 - CRE_1)
-      
-      #Remove inf
-      inf <- is.infinite(values(delta_CRE))
-      values(delta_CRE)[inf == TRUE] <- NA
-      
-      #Focal observations
-      fCCI <- focal(delta_CCI, 
-                    w = wmatrix,
-                    fun = "sum",
-                    na.rm = TRUE)
-      
-      fNDW <- focal(delta_NDW, 
-                    w = wmatrix,
-                    fun = "sum",
-                    na.rm = TRUE)
-      
-      fCRE <- focal(delta_CRE, 
-                    w = wmatrix,
-                    fun = "sum",
-                    na.rm = TRUE)
-      
-      # Mask application -----------------------------
-      # Read NDVI
-      NDVI <- rast(paste0(root_path, "/",
-                          time1$tile[1], "/",
-                          time1[VI == "NDV", scene]))
-      
-      #Get mean
-      NDVI <- mean(NDVI, na.rm = T)
-      
-      #Look for threshold
-      mask <- values(NDVI) >= threshold
-      values(NDVI)[mask == TRUE] <- 1
-      values(NDVI)[mask != TRUE] <- 0
-      
-      #Apply mask
-      dCCI <- mask(fCCI, NDVI, maskvalues = 0)
-      dNDW <- mask(fNDW, NDVI, maskvalues = 0)
-      dCRE <- mask(fCRE, NDVI, maskvalues = 0)
-      
-      #Export ----------------------------------------
-      dVI <- c(dCCI, dNDW, dCRE)
-      
-      export_name <- paste0(out_path, "/", 
-                            sub_frame$tile[1], "/",
-                            sub_frame$year[1], "_dVI.tif")
-      
-      #Export
-      writeRaster(x = dVI,
-                  filename = export_name,
-                  names = c("dCCI", "dNDW", "dCRE"),
-                  NAflag = NA,
-                  overwrite=TRUE)
-      
-      #Remove residuals
-      rm(list = c("sub_frame", "time1", "time2", "n_times", "inf",
-                  "NDVI", "mask", "export_name",
-                  "CCI_1", "CCI_2", "delta_CCI", "dCCI", "fCCI",
-                  "NDW_1", "NDW_2", "delta_NDW", "dNDW", "fNDW",
-                  "CRE_1", "CRE_2", "delta_CRE", "dCRE", "fCRE"))
-      gc()
-      
-      }
-    }
+            
+            #Get set of observations
+            sub_frame <- subset(frame, unique == i)
+            time1 <- subset(sub_frame, time == 1)
+            time2 <- subset(sub_frame, time == 2)
+            
+            #logic to skip
+            n_times <- uniqueN(sub_frame$time)
+            
+            #Finish if there is not different periods
+            if(n_times == 2) {
+              
+              #CCI -------------------------------------------
+              CCI_1 <- rast(paste0(root_path, "/",
+                                   time1$tile[1], "/",
+                                   time1[VI == "CCI", scene]))
+              CCI_1 <- mean(CCI_1, na.rm = T)
+              
+              CCI_2 <- rast(paste0(root_path, "/",
+                                   time2$tile[1], "/",
+                                   time2[VI == "CCI", scene]))
+              CCI_2 <- mean(CCI_2, na.rm = T)
+              
+              delta_CCI <- round(CCI_2 - CCI_1)
+              
+              #Remove inf
+              inf <- is.infinite(values(delta_CCI))
+              values(delta_CCI)[inf == TRUE] <- NA
+              
+              #NDVW ------------------------------------------
+              NDW_1 <- rast(paste0(root_path, "/",
+                                   time1$tile[1], "/",
+                                   time1[VI == "NDM", scene]))
+              NDW_1 <- mean(NDW_1, na.rm = T)
+              
+              NDW_2 <- rast(paste0(root_path, "/",
+                                   time2$tile[1], "/",
+                                   time2[VI == "NDM", scene]))
+              NDW_2 <- mean(NDW_2, na.rm = T)
+              
+              delta_NDW <- round(NDW_2 - NDW_1)
+              
+              #Remove inf
+              inf <- is.infinite(values(delta_NDW))
+              values(delta_NDW)[inf == TRUE] <- NA
+              
+              #CRE -------------------------------------------
+              CRE_1 <- rast(paste0(root_path, "/",
+                                   time1$tile[1], "/",
+                                   time1[VI == "CRE", scene]))
+              CRE_1 <- mean(CRE_1, na.rm = T)
+              
+              CRE_2 <- rast(paste0(root_path, "/",
+                                   time2$tile[1], "/",
+                                   time2[VI == "CRE", scene]))
+              CRE_2 <- mean(CRE_2, na.rm = T)
+              
+              delta_CRE <- round(CRE_2 - CRE_1)
+              
+              #Remove inf
+              inf <- is.infinite(values(delta_CRE))
+              values(delta_CRE)[inf == TRUE] <- NA
+              
+              #Focal observations
+              #fCCI <- focal(delta_CCI, 
+              #              w = wmatrix,
+              #              fun = "sum",
+              #              na.rm = TRUE)
+              
+              #fNDW <- focal(delta_NDW, 
+              #              w = wmatrix,
+              #              fun = "sum",
+              #              na.rm = TRUE)
+              
+              #fCRE <- focal(delta_CRE, 
+              #              w = wmatrix,
+              #              fun = "sum",
+              #              na.rm = TRUE)
+              
+              # Mask application -----------------------------
+              # Read NDVI
+              NDVI <- rast(paste0(root_path, "/",
+                                  time1$tile[1], "/",
+                                  time1[VI == "NDV", scene]))
 
+              #Get mean
+              kNDVI <- tanh((NDVI/10000)^2)*10000
+              kNDVI <- mean(kNDVI, na.rm = T)
+              
+              
+              #Look for threshold
+              #mask <- values(NDVI) >= threshold
+              #values(NDVI)[mask == TRUE] <- 1
+              #values(NDVI)[mask != TRUE] <- 0
+              
+              #Apply mask
+              #dCCI <- mask(fCCI, NDVI, maskvalues = 0)
+              #dNDW <- mask(fNDW, NDVI, maskvalues = 0)
+              #dCRE <- mask(fCRE, NDVI, maskvalues = 0)
+              
+              #Export ----------------------------------------
+              dVI <- c(delta_CCI, delta_NDW, delta_CRE, kNDVI)
+              
+              export_name <- paste0(out_path, "/", 
+                                    sub_frame$tile[1], "/",
+                                    sub_frame$year[1], "_dVI.tif")
+              
+              #Export
+              writeRaster(x = dVI,
+                          filename = export_name,
+                          names = c("dCCI", "dNDW", "dCRE", "kND"),
+                          NAflag = NA,
+                          overwrite=TRUE)
+              
+              #Remove residuals
+              rm(list = c("sub_frame", "time1", "time2",     "n_times",
+                          "CCI_1",     "CCI_2", "delta_CCI", 
+                          "NDW_1",     "NDW_2", "delta_NDW",
+                          "CRE_1",     "CRE_2", "delta_CRE", 
+                          "inf",       "NDVI",  "kNDVI",     "dVI", 
+                          "export_name"))
+              gc()
+
+            }
+          }
+  
   #Stop cluster
   stopCluster(cl)
   gc()
