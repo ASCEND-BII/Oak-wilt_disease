@@ -20,9 +20,16 @@ library(foreach)
 #' @param out_path: path and name of the .txt outputs
 #' @param threads: the number of threads to use for parallel processing
 
-root_path <- "F:/FORCE/level4/X0014_Y0024"
-vector_path <- "F:/FORCE/level3_shifted/training_X0014_0024.gpkg"
-out_path <- "F:/FORCE/level4/X0014_0024_dVI.txt"
+#-------------------------------------------------------------------------------
+#' @example
+
+path <- "/media/antonio/antonio_ssd/FORCE"
+
+root_path <- paste0(path, "/level4/X0014_Y0024")
+vector_path <- paste0(path, "/level3_shifted/training_X0014_0024.gpkg")
+out_path <- paste0(path, "/model/data/X0014_0024_dVI.txt")
+
+dvi_extraction(root_path, vector_path, out_path)
 
 #-------------------------------------------------------------------------------
 #Arguments
@@ -106,10 +113,3 @@ dvi_extraction <- function(root_path, vector_path, out_path) {
   return(complete)
   
 }
-
-#' @example 
-root_path <- "F:/FORCE/level4/X0015_Y0024"
-vector_path <- "F:/FORCE/level3_shifted/training_X0015_0024.gpkg"
-out_path <- "F:/FORCE/level4/X0015_0024_dVI.txt"
-
-dvi_extraction(root_path, vector_path, out_path)
