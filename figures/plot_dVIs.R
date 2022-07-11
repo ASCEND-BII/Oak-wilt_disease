@@ -33,10 +33,10 @@ data$condition <- factor(data$condition, levels = c("healthy", "wilted", "dead")
 
 #-------------------------------------------------------------------------------
 # Plot
-ggtern(data= data, aes(x= nNDW, y= nCCI, z= nCRE)) +
+plot <- ggtern(data= data, aes(x= nNDW, y= nCCI, z= nCRE)) +
   geom_point(aes(fill = condition, size = area), alpha = 0.5, colour = "grey20", shape = 21) +
   #geom_density_tern(aes(color=..level..),bins=5) +
-  theme_rgbw() +
+  theme_rgbw(base_size = 11) +
   labs( x       = expression(paste(Delta, "NDWI"[n], sep = "")),
         xarrow  = expression(paste(Delta, "NDWI"[n], sep = "")),
         y       = expression(paste(Delta, "CCI"[n], sep = "")),
@@ -48,6 +48,13 @@ ggtern(data= data, aes(x= nNDW, y= nCCI, z= nCRE)) +
   theme(legend.background = element_rect(fill = "white"),
     legend.key = element_rect(fill = "white", color = NA))
 
+#Export figure
+tiff("figures/Figure_1.tif", width = 16, height = 16, units = "cm", res = 600)
+
+plot
+
+dev.off()
+
 #-------------------------------------------------------------------------------
 # Plot
 
@@ -55,8 +62,8 @@ ggtern(data= data, aes(x= nNDW, y= nCCI, z= nCRE)) +
 tamano <- 12
 tamano2 <- 10
 mar <- theme(plot.margin = margin(0, 0, 0, 0, "pt"))
-pa <- c("#228b22", "#FF0000", "grey40")
-color <- "grey75"
+pa <- c("#228b22", "#7a0019", "#777677")
+color <- "#d5d6d2"
 
 #Create plots
 dCCI <- ggplot(data, aes(x = condition, y = dCCI/10000, fill = condition)) +
@@ -113,7 +120,7 @@ hist_dCRE <- ggplot(data, aes(x= dCRE/1000)) +
 
 
 #Merge panels
-Figure_1 <- ggarrange(dCRE, hist_dCRE, 
+Figure_2 <- ggarrange(dCRE, hist_dCRE, 
                       dCCI, hist_dCCI, 
                       dNDW, hist_dNDW,
                       ncol = 2, nrow = 3, align = "hv", 
@@ -124,3 +131,10 @@ Figure_1 <- ggarrange(dCRE, hist_dCRE,
                       label.x = 0.25,
                       label.y = 0.99,
                       common.legend = FALSE)
+
+#Export figure
+tiff("figures/Figure_2.tif", width = 9.5, height = 13, units = "cm", res = 600)
+
+Figure_2 
+
+dev.off()
