@@ -155,7 +155,7 @@ get_dVI <- function(root_path, out_path,
               NDVI <- rast(paste0(root_path, "/",
                                   time1$tile[1], "/",
                                   time1[VI == "NDV", scene]))
-
+              
               #Get mean
               kNDVI <- tanh((NDVI/10000)^2)*10000
               kNDVI <- mean(kNDVI, na.rm = T)
@@ -193,7 +193,7 @@ get_dVI <- function(root_path, out_path,
                           "inf",       "NDVI",  "kNDVI",     "dVI", 
                           "export_name"))
               gc()
-
+              
             }
           }
   
