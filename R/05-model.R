@@ -16,14 +16,15 @@ library(doParallel)
 # Root path
 
 path <- "/media/antonio/antonio_ssd/FORCE"
+path <- "F:/FORCE"
 
 #-------------------------------------------------------------------------------
 # Reading and cleaning
 
 #Reading -------------
 
-X0014_Y0024 <- fread(paste0(path, "/model/data/X0014_0024_dVI.txt"))
-X0015_Y0024 <- fread(paste0(path, "/model/data/X0015_0024_dVI.txt"))
+X0014_Y0024 <- fread(paste0(path, "/model/data/X0014_0024_dkVI_clean.txt"))
+X0015_Y0024 <- fread(paste0(path, "/model/data/X0015_0024_dkVI_clean.txt"))
 #X0016_Y0024 <- fread(paste0(path, "/model/data/X0016_0024_dVI.txt"))
 
 #Add tiles
@@ -47,7 +48,7 @@ frame <- na.exclude(frame)
 data <- data[frame$row, ]
 condition <- is.na(data$condition)
 data <- subset(data, condition != "")
-data <- data[, c(12, 1:11)]
+data <- data[, c(13, 1:11)]
 
 #Look for area features
 data <- subset(data, area >= (pi*3^2)) #radios higher than 3m
@@ -180,15 +181,15 @@ fwrite(wilted_testing, paste0(path, "/model/training/wilted_testing.csv"))
 healthy_training <- rbind(healthy[ind_healthy], no_healthy[ind_no_healthy])
 healthy_testing <- rbind(healthy[!ind_healthy], no_healthy[!ind_no_healthy])
 
-fwrite(training, paste0(path, "/model/training/healthy_training.csv"))
-fwrite(testing, paste0(path, "/model/training/healthy_testing.csv"))
+fwrite(healthy_training, paste0(path, "/model/training/healthy_training.csv"))
+fwrite(healthy_testing, paste0(path, "/model/training/healthy_testing.csv"))
 
 #Dead
 dead_training <- rbind(dead[ind_dead], no_dead[ind_no_dead])
 dead_testing <- rbind(dead[!ind_dead], no_dead[!ind_no_dead])
 
-fwrite(training, paste0(path, "/model/training/dead_training.csv"))
-fwrite(testing, paste0(path, "/model/training/dead_testing.csv"))
+fwrite(dead_training, paste0(path, "/model/training/dead_training.csv"))
+fwrite(dead_testing, paste0(path, "/model/training/dead_testing.csv"))
 
 #-------------------------------------------------------------------------------
 # Model Training
@@ -236,6 +237,7 @@ model_training <- function(wilted_training, healthy_training, dead_training) {
   
 }
 
+#Models based on receiver operating characteristic curve
 models <- model_training(wilted_training, healthy_training, dead_training)
 
 #Export model
@@ -340,11 +342,11 @@ validation <- model_testing(models,
 
 
 
-prob <- predict(bayesglm_model, type = "prob")[, 2]
-plot(prob ~ data_training$dCCI)
-plot(prob ~ data_training$dNDW)
-plot(prob ~ data_training$dCRE)
-plot(prob ~ data_training$kND)
+prob <- predict(models$wilted, type = "prob")[, 2]
+plot(prob ~ wilted_training$dCCI)
+plot(prob ~ wilted_training$dNDW)
+plot(prob ~ wilted_training$dCRE)
+plot(prob ~ wilted_training$kND)
 
 #Get coefficients
 intercept <- summary(bayesglm_model$finalModel)$coeff[1, 1]

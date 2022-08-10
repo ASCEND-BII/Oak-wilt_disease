@@ -5,6 +5,7 @@
 #-------------------------------------------------------------------------------
 # Libraries
 
+library(data.table)
 library(ggplot2)
 library(ggtern)
 library(ggpubr)
@@ -14,6 +15,7 @@ library(scales)
 # Root path
 
 path <- "/media/antonio/antonio_ssd/FORCE"
+path <- "F:/FORCE"
 
 #-------------------------------------------------------------------------------
 # Reading 
@@ -108,15 +110,15 @@ dCRE <- ggplot(data, aes(x = condition, y = dCRE/1000, fill = condition)) +
 #Create histograms
 hist_dCCI <- ggplot(data, aes(x= dCCI/10000)) + 
   geom_density(fill= color, colour = "black", alpha = 0.5) +
-  rotate() + theme_void() + mar
+  coord_flip() + theme_void() + mar
 
 hist_dNDW <- ggplot(data, aes(x= dNDW/10000)) + 
   geom_density(fill= color, colour = "black", alpha = 0.5) +
-  rotate() + theme_void() + mar
+  coord_flip() + theme_void() + mar
 
 hist_dCRE <- ggplot(data, aes(x= dCRE/1000)) + 
   geom_density(fill= color, colour = "black", alpha = 0.5) +
-  rotate() + theme_void() + mar
+  coord_flip() + theme_void() + mar
 
 
 #Merge panels
