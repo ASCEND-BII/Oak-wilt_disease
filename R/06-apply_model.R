@@ -30,10 +30,12 @@ path <- "/media/antonio/antonio_ssd/FORCE"
 #' @param out_path: path and name of the .txt outputs
 #' @param threads: the number of threads to use for parallel processing
 
-root_path <- paste0(path, "/level4")
+root_path <- paste0(path, "/level4k")
 models <- readRDS("data/models/models.rds")
 out_path <- paste0(path, "/level5")
 threads <- 24
+
+apply_model(root_path, models, out_paths, threads)
 
 #-------------------------------------------------------------------------------
 #Function

@@ -22,8 +22,8 @@ path <- "/media/antonio/antonio_ssd/FORCE"
 
 #Reading -------------
 
-X0014_Y0024 <- fread(paste0(path, "/model/data/X0014_0024_dVI.txt"))
-X0015_Y0024 <- fread(paste0(path, "/model/data/X0015_0024_dVI.txt"))
+X0014_Y0024 <- fread(paste0(path, "/model/data/X0014_0024_dkVI.txt"))
+X0015_Y0024 <- fread(paste0(path, "/model/data/X0015_0024_dkVI.txt"))
 #X0016_Y0024 <- fread(paste0(path, "/model/data/X0016_0024_dVI.txt"))
 
 #Add tiles
@@ -38,19 +38,12 @@ data <- rbind(X0014_Y0024, X0015_Y0024)
 
 #Subset for 2019
 data <- subset(data, date == "2019")
-data$row <- 1:nrow(data)
-
-#Select pixel with the highest cover
-frame <- data[, row[which.max(weight)], by = c("ID", "tile")]
-colnames(frame)[3] <- "row"
-frame <- na.exclude(frame)
-data <- data[frame$row, ]
-condition <- is.na(data$condition)
-data <- subset(data, condition != "")
-data <- data[, c(12, 1:11)]
 
 #Look for area features
 data <- subset(data, area >= (pi*3^2)) #radios higher than 3m
+
+#NA exclude
+data <- na.exclude(data)
 
 #Look for out layers
 remove_outliers <- function(x, na.rm = TRUE, ...) {
@@ -115,7 +108,7 @@ data[condition != "dead", factor_dead := "non_dead", ]
 
 #Data partitions ---------------------------------------------------------------
 #Wilted ---------------------------
-table(data$factor_wilted) #622 498 
+table(data$factor_wilted) #629 508 
 
 #Separate
 wilted <- subset(data, factor_wilted == "wilted")
@@ -123,18 +116,18 @@ no_wilted <- subset(data, factor_wilted == "non_wilted")
 
 #Split
 ind_wilted <- createDataPartition(wilted$tile,
-                                  p = 0.5594855,
+                                  p = 0.5997994,
                                   list = FALSE,
                                   times = 1)
 
 ind_no_wilted <- createDataPartition(no_wilted$tile,
-                                     p = 0.5594855,
+                                     p = 0.5507726,
                                      list = FALSE,
                                      times = 1)
 
 
 #Healthy ---------------------------
-table(data$factor_healthy) #354 766
+table(data$factor_healthy) #358 779
 
 #Separate
 healthy <- subset(data, factor_healthy == "healthy")
@@ -142,29 +135,29 @@ no_healthy <- subset(data, factor_healthy == "non_healthy")
 
 #Split
 ind_healthy <- createDataPartition(healthy$tile,
-                                  p = 0.6836158,
+                                  p = 0.6,
                                   list = FALSE,
                                   times = 1)
 
 ind_no_healthy <- createDataPartition(no_healthy$tile,
-                                     p = 0.3159269,
+                                     p = 0.39,
                                      list = FALSE,
                                      times = 1)
 
 #Dead ---------------------------
-table(data$factor_dead) #268 852
+table(data$factor_dead) #271 866
 
 #Separate
 dead <- subset(data, factor_dead == "dead")
 no_dead <- subset(data, factor_dead == "non_dead")
 
 ind_dead <- createDataPartition(dead$tile,
-                                  p = 0.7014925,
+                                  p = 0.6004289,
                                   list = FALSE,
                                   times = 1)
 
 ind_no_dead <- createDataPartition(no_dead$tile,
-                                     p = 0.2206573,
+                                     p = 0.1990993,
                                      list = FALSE,
                                      times = 1)
 
@@ -202,33 +195,37 @@ fitControl <- trainControl(method = "repeatedcv",
                            savePredictions = TRUE)
 
 #Select columns of interest
-wilted_training <- wilted_training[, c(13, 9:12)]
-healthy_training <- healthy_training[, c(14, 9:12)]
-dead_training <- dead_training[, c(15, 9:12)]
+wilted_weights <- wilted_training$weight
+wilted_training <- wilted_training[, c(13, 8:11)]
+healthy_weights <- healthy_training$weight
+healthy_training <- healthy_training[, c(14, 8:11)]
+dead_weights <- dead_training$weight
+dead_training <- dead_training[, c(15, 8:11)]
+
 
 #Model
 model_training <- function(wilted_training, healthy_training, dead_training) {
   
   set.seed(825)
   wilted_model <- train(factor_wilted ~ ., data = wilted_training, 
-                          method = 'bayesglm', 
-                          trControl = fitControl,
-                          #weights = weights,
-                          metric = "ROC")
+                        method = 'bayesglm', 
+                        trControl = fitControl,
+                        weights = wilted_weights*100,
+                        metric = "ROC")
   
   set.seed(825)
   healthy_model <- train(factor_healthy ~ ., data = healthy_training, 
-                        method = 'bayesglm', 
-                        trControl = fitControl,
-                        #weights = weights,
-                        metric = "ROC")
+                         method = 'bayesglm', 
+                         trControl = fitControl,
+                         weights = healthy_weights*100,
+                         metric = "ROC")
   
   set.seed(825)
   dead_model <- train(factor_dead ~ ., data = dead_training, 
-                        method = 'bayesglm', 
-                        trControl = fitControl,
-                        #weights = weights,
-                        metric = "ROC")
+                      method = 'bayesglm', 
+                      trControl = fitControl,
+                      weights = dead_weights*100,
+                      metric = "ROC")
   
   return(list(wilted = wilted_model,
               healthy = healthy_model,
@@ -245,9 +242,9 @@ saveRDS(models, "data/models/models.rds")
 # Model Testing
 
 #Select columns of interest
-wilted_testing <- wilted_testing[, c(13, 9:12)]
-healthy_testing <- healthy_testing[, c(14, 9:12)]
-dead_testing <- dead_testing[, c(15, 9:12)]
+wilted_testing <- wilted_testing[, c(13, 8:11)]
+healthy_testing <- healthy_testing[, c(14, 8:11)]
+dead_testing <- dead_testing[, c(15, 8:11)]
 
 #Model testing
 
@@ -340,11 +337,24 @@ validation <- model_testing(models,
 
 
 
-prob <- predict(bayesglm_model, type = "prob")[, 2]
-plot(prob ~ data_training$dCCI)
-plot(prob ~ data_training$dNDW)
-plot(prob ~ data_training$dCRE)
-plot(prob ~ data_training$kND)
+prob <- predict(models$wilted, type = "prob")[, 2]
+plot(prob ~ wilted_training$dCCI)
+plot(prob ~ wilted_training$dNDW)
+plot(prob ~ wilted_training$dCRE)
+plot(prob ~ wilted_training$kND)
+
+prob <- predict(models$healthy, type = "prob")[, 2]
+plot(prob ~ healthy_training$dCCI)
+plot(prob ~ healthy_training$dNDW)
+plot(prob ~ healthy_training$dCRE)
+plot(prob ~ healthy_training$kND)
+
+prob <- predict(models$dead, type = "prob")[, 2]
+plot(prob ~ dead_training$dCCI)
+plot(prob ~ dead_training$dNDW)
+plot(prob ~ dead_training$dCRE)
+plot(prob ~ dead_training$kND)
+
 
 #Get coefficients
 intercept <- summary(bayesglm_model$finalModel)$coeff[1, 1]
