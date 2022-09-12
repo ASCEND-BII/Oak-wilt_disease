@@ -20,7 +20,7 @@ source("R/00-model_predict.R")
 #-------------------------------------------------------------------------------
 # Root path
 
-path <- "/media/antonio/antonio_ssd/FORCE"
+path <- "/media/antonio/antonio_ssd/FORCE/aplication"
 
 #-------------------------------------------------------------------------------
 #Arguments
@@ -30,9 +30,9 @@ path <- "/media/antonio/antonio_ssd/FORCE"
 #' @param out_path: path and name of the .txt outputs
 #' @param threads: the number of threads to use for parallel processing
 
-root_path <- paste0(path, "/level4k")
+root_path <- paste0(path, "/level3")
 models <- readRDS("data/models/models.rds")
-out_path <- paste0(path, "/level5")
+out_path <- paste0(path, "/level4")
 threads <- 24
 
 apply_model(root_path, models, out_paths, threads)
@@ -56,8 +56,13 @@ apply_model <- function(root_path, models, out_paths, threads) {
   
   colnames(frame) <- c("tile", "scene")
   
-  #Get year
-  frame[, year := substr(scene, 1, 4), by = seq_along(1:nrow(frame))]
+  #Get VI
+  frame[, VI := substr(scene, 32, 34), by = seq_along(1:nrow(frame))]
+  
+  #Get date
+  date <- rast(paste0(root_path, "/", files[1]))
+  date <- names(date)
+  date <- as.IDate(c(paste0(substr(date, 1, 4), "-", substr(date, 5, 6), "-", substr(date, 7, 8))))
   
   # Set up cluster
   cl <- makeCluster(threads, type = "FORK")
