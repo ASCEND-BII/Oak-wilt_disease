@@ -39,8 +39,8 @@ data <- rbind(X0014_Y0024, X0015_Y0024)
 #Subset for 2019
 data <- subset(data, year(as.Date(date)) == 2019)
 data <- data[, c(12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 10)]
-data <- subset(data, as.Date(date) >= as.Date("2019-06-01"))
-data <- subset(data, as.Date(date) <= as.Date("2019-09-04"))
+data <- subset(data, as.Date(date) >= as.Date("2019-03-01"))
+data <- subset(data, as.Date(date) <= as.Date("2019-11-30"))
 
 #Look for area features
 data <- subset(data, area >= (pi*3^2)) #radios higher than 3m
@@ -54,26 +54,33 @@ unique_IDs$N <- 1:nrow(unique_IDs)
 
 #Final to use
 data <- merge(unique_IDs, data, by = c("tile", "ID", "condition", "x", "y"), all.x = TRUE, all.y = FALSE)
+data$row <- 1:nrow(data)
 
-ggplot(data) +
-  geom_line(aes(x = date, y = CCI/10000, colour = condition, group = interaction(N))) +
-  geom_vline(xintercept = as.Date("2019-06-15")) + 
-  geom_vline(xintercept = as.Date("2019-09-04"))
+#Clean by weight
+frame <- data[, row[which.max(weight)], by = c("ID", "date")]
+colnames(frame)[3] <- "row"
+frame <- na.exclude(frame)
+data <- data[frame$row, .SD, .SDcols = c(1:13)]
 
-ggplot(data) +
-  geom_line(aes(x = date, y = CRE/1000, colour = condition, group = interaction(N))) +
-  geom_vline(xintercept = as.Date("2019-06-15")) + 
-  geom_vline(xintercept = as.Date("2019-09-04"))
+#ggplot(data) +
+#  geom_line(aes(x = date, y = CCI/10000, colour = condition, group = interaction(N))) +
+#  geom_vline(xintercept = as.Date("2019-06-15")) + 
+#  geom_vline(xintercept = as.Date("2019-09-04"))
 
-ggplot(data) +
-  geom_line(aes(x = date, y = NDW/10000, colour = condition, group = interaction(N))) +
-  geom_vline(xintercept = as.Date("2019-06-15")) + 
-  geom_vline(xintercept = as.Date("2019-09-04"))
+#ggplot(data) +
+#  geom_line(aes(x = date, y = CRE/1000, colour = condition, group = interaction(N))) +
+#  geom_vline(xintercept = as.Date("2019-06-15")) + 
+#  geom_vline(xintercept = as.Date("2019-09-04"))
 
-ggplot(data) +
-  geom_line(aes(x = date, y = KNV/10000, colour = condition, group = interaction(N))) +
-  geom_vline(xintercept = as.Date("2019-06-15")) + 
-  geom_vline(xintercept = as.Date("2019-09-04"))
+#ggplot(data) +
+#  geom_line(aes(x = date, y = NDW/10000, colour = condition, group = interaction(N))) +
+#  geom_vline(xintercept = as.Date("2019-06-15")) + 
+#  geom_vline(xintercept = as.Date("2019-09-04"))
+
+#ggplot(data) +
+#  geom_line(aes(x = date, y = KNV/10000, colour = condition, group = interaction(N))) +
+#  geom_vline(xintercept = as.Date("2019-04-29")) + 
+#  geom_vline(xintercept = as.Date("2019-06-16"))
 
 slope <- data.table()
 
@@ -83,7 +90,8 @@ for(j in 1:length(n_pixel)) {
   
   sub_data <- subset(data, N == n_pixel[j])
   
-  trend <- lm(sub_data$CCI ~ sub_data$date)
+  trend <- lm(sub_data$CCI[7:12] ~ sub_data$date[7:12])
+  trend_kNDVI <- lm(sub_data$KNV[4:6] ~ sub_data$date[4:6])
   
   results <- data.table(tile = sub_data$tile[1],
                         ID = sub_data$ID[1],
@@ -91,51 +99,60 @@ for(j in 1:length(n_pixel)) {
                         condition = sub_data$condition[1],
                         area = sub_data$area[1],
                         weight = sub_data$weight[1],
-                        slope = trend$coefficients[2],
+                        CCI = trend$coefficients[2],
                         intercept = trend$coefficients[1],
                         rsq = summary(trend)$r.squared,
+<<<<<<< HEAD
                         maxCRE = sub_data$CRE[4],
                         minNDW = tanh((sub_data$NDW[4]/10000)^2)*10000,
                         init_KDW = sub_data$KNV[1],
                         mean_KDW = mean(sub_data$KNV))
+=======
+                        CRE = (sub_data$CRE[10] - sub_data$CRE[3]),
+                        NDW = sub_data$NDW[9],
+                        KNV = trend_kNDVI$coefficients[2],
+                        KNV_mean = sub_data$KNV[9])
+>>>>>>> 43a5d42043a1eda545a3954f9913da67c924eaa0
   
   slope <- rbind(slope, results)
   
 }
 
+<<<<<<< HEAD
 slope <- subset(slope, mean_KDW >= 5000)
 slope <- subset(slope, minNDW >= 5000)
+=======
+slope <- subset(slope, KNV_mean >= 4000)
+>>>>>>> 43a5d42043a1eda545a3954f9913da67c924eaa0
 
-ggplot(slope, aes(x= condition, y= slope, fill = condition)) +
+ggplot(slope, aes(x= condition, y= CCI, fill = condition)) +
   geom_boxplot() +
   scale_fill_viridis(discrete = TRUE, alpha=0.6) +
   geom_jitter(color="black", size=0.4, alpha=0.9)
 
+<<<<<<< HEAD
 ggplot(slope, aes(x= condition, y= intercept, fill = condition)) +
   geom_boxplot() +
   scale_fill_viridis(discrete = TRUE, alpha=0.6) +
   geom_jitter(color="black", size=0.4, alpha=0.9)
 
 ggplot(slope, aes(x= condition, y= maxCRE, fill = condition)) +
+=======
+ggplot(slope, aes(x= condition, y= CRE, fill = condition)) +
+>>>>>>> 43a5d42043a1eda545a3954f9913da67c924eaa0
   geom_boxplot() +
   scale_fill_viridis(discrete = TRUE, alpha=0.6) +
   geom_jitter(color="black", size=0.4, alpha=0.9)
 
-ggplot(slope, aes(x= condition, y= minNDW, fill = condition)) +
+ggplot(slope, aes(x= condition, y= NDW, fill = condition)) +
   geom_boxplot() +
   scale_fill_viridis(discrete = TRUE, alpha=0.6) +
   geom_jitter(color="black", size=0.4, alpha=0.9)
 
-ggplot(slope, aes(x= condition, y= init_KDW, fill = condition)) +
+ggplot(slope, aes(x= condition, y= KNV, fill = condition)) +
   geom_boxplot() +
   scale_fill_viridis(discrete = TRUE, alpha=0.6) +
   geom_jitter(color="black", size=0.4, alpha=0.9)
-
-ggplot(slope, aes(x= condition, y= mean_KDW, fill = condition)) +
-  geom_boxplot() +
-  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
-  geom_jitter(color="black", size=0.4, alpha=0.9)
-  
 
 #Look for out layers
 remove_outliers <- function(x, na.rm = TRUE, ...) {
@@ -147,10 +164,10 @@ remove_outliers <- function(x, na.rm = TRUE, ...) {
   y
 }
 
-slope[, slope := remove_outliers(slope), by = condition]
-slope[, maxCRE := remove_outliers(maxCRE), by = condition]
-slope[, minNDW := remove_outliers(minNDW), by = condition]
-slope[, init_KDW := remove_outliers(init_KDW), by = condition]
+slope[, CCI := remove_outliers(CCI), by = condition]
+slope[, CRE := remove_outliers(CRE), by = condition]
+slope[, NDW := remove_outliers(NDW), by = condition]
+slope[, KNV := remove_outliers(KNV), by = condition]
 
 slope <- na.exclude(slope)
 
@@ -162,7 +179,7 @@ fwrite(slope, paste0(path, "/model/data/data_clean.csv"))
 
 #Read
 data <- fread(paste0(path, "/model/data/data_clean.csv"))
-data <- subset(data, weight >= 0.5)
+#data <- subset(data, weight >= 0.5)
 
 #Data split
 data[condition == "wilted", factor_wilted := "wilted", ]
@@ -175,6 +192,15 @@ data[condition == "dead", factor_dead := "dead", ]
 data[condition != "dead", factor_dead := "non_dead", ]
 
 #Data partitions ---------------------------------------------------------------
+#Condition ---------------------------
+table(data$condition) #625 529 
+
+#Split
+ind_condition <- createDataPartition(data$condition,
+                                     p = 0.75,
+                                     list = FALSE,
+                                     times = 1)
+
 #Wilted ---------------------------
 table(data$factor_wilted) #625 529 
 
@@ -230,6 +256,13 @@ ind_no_dead <- createDataPartition(no_dead$tile,
                                    times = 1)
 
 #Get training and testing export -----------------------------------------------
+#Condition
+condition_training <- data[ind_condition]
+condition_testing <- data[!ind_condition]
+
+fwrite(condition_training, paste0(path, "/model/training/condition_training.csv"))
+fwrite(condition_testing, paste0(path, "/model/training/condition_testing.csv"))
+
 #wilted
 wilted_training <- rbind(wilted[ind_wilted], no_wilted[ind_no_wilted])
 wilted_testing <- rbind(wilted[!ind_wilted], no_wilted[!ind_no_wilted])
@@ -254,6 +287,7 @@ fwrite(dead_testing, paste0(path, "/model/training/dead_testing.csv"))
 #-------------------------------------------------------------------------------
 # Model Training
 
+<<<<<<< HEAD
 #Repeated 10-fold cross-validation
 fitControl <- trainControl(method = "repeatedcv",
                            number = 10,
@@ -265,8 +299,16 @@ fitControl <- trainControl(method = "repeatedcv",
 wilted_names <- c("factor_wilted", "slope", "maxCRE", "init_KDW", "mean_KDW")
 healthy_names <- c("factor_healthy", "slope", "maxCRE", "init_KDW", "mean_KDW")
 dead_names <- c("factor_dead", "slope", "maxCRE", "init_KDW", "mean_KDW")
+=======
+condition_names <-  c("condition", "CCI", "CRE", "NDW", "KNV")
+wilted_names <-  c("factor_wilted", "CCI", "CRE", "NDW", "KNV")
+healthy_names <- c("factor_healthy", "CCI", "CRE", "NDW", "KNV")
+dead_names <- c("factor_dead", "CCI", "CRE", "NDW", "KNV")
+>>>>>>> 43a5d42043a1eda545a3954f9913da67c924eaa0
 
 #Select columns of interest
+condition_weights <- condition_training$weight
+condition_training <- condition_training[, ..condition_names]
 wilted_weights <- wilted_training$weight
 wilted_training <- wilted_training[, ..wilted_names]
 healthy_weights <- healthy_training$weight
@@ -275,8 +317,30 @@ dead_weights <- dead_training$weight
 dead_training <- dead_training[, ..dead_names]
 
 #Model
-model_training <- function(wilted_training, healthy_training, dead_training) {
+model_training <- function(condition_training, wilted_training, healthy_training, dead_training) {
   
+  #Repeated 10-fold cross-validation
+  fitControl <- trainControl(method = "repeatedcv",
+                             number = 10,
+                             repeats = 10,
+                             classProbs = TRUE,
+                             summaryFunction = twoClassSummary,
+                             savePredictions = TRUE)
+  
+  #Repeated 10-fold cross-validation
+  cfitControl <- trainControl(method = "repeatedcv",
+                             number = 10,
+                             repeats = 10,
+                             classProbs = TRUE,
+                             summaryFunction = defaultSummary,
+                             savePredictions = TRUE)
+  
+  #set.seed(825)
+  #condition_model <- train(condition ~ ., data = condition_training, 
+  #                         method = 'bayesglm', 
+  #                         trControl = cfitControl,
+  #                         weights = condition_weights*100)
+                      
   set.seed(825)
   wilted_model <- train(factor_wilted ~ ., data = wilted_training, 
                         method = 'bayesglm', 
@@ -297,21 +361,14 @@ model_training <- function(wilted_training, healthy_training, dead_training) {
                       trControl = fitControl,
                       weights = dead_weights*100,
                       metric = "ROC")
-  
-  set.seed(825)
-  dead_model <- train(factor_dead ~ ., data = dead_training, 
-                      method = 'bayesglm', 
-                      trControl = fitControl,
-                      weights = dead_weights*100,
-                      metric = "ROC")
-  
+
   return(list(wilted = wilted_model,
               healthy = healthy_model,
               dead = dead_model))
   
 }
 
-models <- model_training(wilted_training, healthy_training, dead_training)
+models <- model_training(condition_training, wilted_training, healthy_training, dead_training)
 
 #Export model
 saveRDS(models, "data/models/models.rds")
@@ -402,13 +459,8 @@ validation <- model_testing(models,
                             healthy_training, healthy_testing, 
                             dead_training, dead_testing)
 
+validation
+models$wilted$finalModel
+a
 
-
-
-
-
-
-
-
-
-
+a <- models$wilted$finalModel

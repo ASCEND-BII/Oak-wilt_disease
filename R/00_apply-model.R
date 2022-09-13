@@ -40,7 +40,7 @@ apply_model(root_path, models, out_paths, threads)
 #-------------------------------------------------------------------------------
 #Function
 
-apply_model <- function(root_path, models, out_paths, threads) {
+apply_model <- function(root_path, models, out_paths, year, threads) {
   
   #Search for VI paths
   files <- list.files(path = root_path, 
@@ -63,6 +63,36 @@ apply_model <- function(root_path, models, out_paths, threads) {
   date <- rast(paste0(root_path, "/", files[1]))
   date <- names(date)
   date <- as.IDate(c(paste0(substr(date, 1, 4), "-", substr(date, 5, 6), "-", substr(date, 7, 8))))
+  years <- year(date)
+  
+  #Unique tiles
+  unique_tiles <- unique(frame$tile)
+  unique_years <- unique(years)
+  
+  application <- function(i, unique_tiles, date, years, unique_years, root_path, out_path) {
+    
+    #Read VIs
+    CCI <- rast(paste0(root_path, "/", unique_tiles[i], "/", "2017-2021_001-365_HL_TSA_SEN2L_CCI_TSI.tif"))
+    CRE <- rast(paste0(root_path, "/", unique_tiles[i], "/", "2017-2021_001-365_HL_TSA_SEN2L_CRE_TSI.tif"))
+    NDW <- rast(paste0(root_path, "/", unique_tiles[i], "/", "2017-2021_001-365_HL_TSA_SEN2L_NDW_TSI.tif"))
+    KNV <- rast(paste0(root_path, "/", unique_tiles[i], "/", "2017-2021_001-365_HL_TSA_SEN2L_KNV_TSI.tif"))
+    
+    
+    
+    for(j in 1:length(unique_years)) {
+      
+      CCI_year <- CCI[years == unique_years[j]]
+      CRE_year <- CRE[years == unique_years[j]]
+      NDW_year <- NDW[years == unique_years[j]]
+      KNV_year <- KNV[years == unique_years[j]]
+      
+      predicted <- model_predict(CCI_year, CRE_year, NDW_year, KNV_year, model)
+      
+      
+    }
+    
+  }
+  
   
   # Set up cluster
   cl <- makeCluster(threads, type = "FORK")
@@ -73,7 +103,7 @@ apply_model <- function(root_path, models, out_paths, threads) {
                         .combine = rbind,
                         .packages = c("terra", "data.table"),
                         .inorder = F) %dopar% {
-                        
+                          
                           #Read scene -------------------
                           scene <- rast(paste0(root_path, "/",
                                                frame$tile[i], "/", 

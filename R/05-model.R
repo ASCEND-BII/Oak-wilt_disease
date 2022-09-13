@@ -16,14 +16,14 @@ library(doParallel)
 # Root path
 
 path <- "/media/antonio/antonio_ssd/FORCE"
+path <- "E:/FORCE"
 
 #-------------------------------------------------------------------------------
 # Reading and cleaning
 
 #Reading -------------
-
-X0014_Y0024 <- fread(paste0(path, "/model/data/X0014_0024_dkVI.txt"))
-X0015_Y0024 <- fread(paste0(path, "/model/data/X0015_0024_dkVI.txt"))
+X0014_Y0024 <- fread(paste0(path, "/level3_shifted/X0014_0024_VI_clean.txt"))
+X0015_Y0024 <- fread(paste0(path, "/level3_shifted/X0015_0024_VI_clean.txt"))
 #X0016_Y0024 <- fread(paste0(path, "/model/data/X0016_0024_dVI.txt"))
 
 #Add tiles
@@ -37,7 +37,10 @@ data <- rbind(X0014_Y0024, X0015_Y0024)
 #Cleaning -------------
 
 #Subset for 2019
-data <- subset(data, date == "2019")
+data <- subset(data, year(as.Date(date)) == 2019)
+data <- data[, c(12, 1, 2, 3, 4, 7, 8, 9, 11)]
+data <- subset(data, month(as.Date(date)) > 2)
+data <- subset(data, month(as.Date(date)) < 11)
 
 #Look for area features
 data <- subset(data, area >= (pi*3^2)) #radios higher than 3m
