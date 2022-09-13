@@ -1,5 +1,5 @@
 ################################################################################
-##### 03 - VI value extraction for time series
+##### 03 - Extraction for pixles from L3 products
 ################################################################################
 
 #' @description Batch extraction of values of VI using a vector file 
@@ -21,11 +21,11 @@ library(foreach)
 #' @param out_path: path and name of the .txt outputs
 #' @param threads: the number of threads to use for parallel processing
 
-path <- "/media/antonio/antonio_ssd/FORCE/"
+path <- "/media/antonio/antonio_ssd/FORCE/aplication"
 
-root_path <- paste0(path, "level3_shifted/X0015_Y0024")
-vector_path <- paste0(path, "level3_shifted/training_X0015_0024.gpkg")
-out_path <- paste0(path, "level3_shifted/X0015_0024_VI.txt")
+root_path <- paste0(path, "/level3/X0015_Y0024")
+vector_path <- paste0(path, "/level3/training_X0015_0024.gpkg")
+out_path <- paste0(path, "/level3/X0015_0024_VI.txt")
 threads <- 4
 
 #-------------------------------------------------------------------------------
@@ -53,10 +53,10 @@ vi_extraction <- function(root_path, vector_path) {
   frame[, VI := strsplit(scene, "_")[[1]][6], by = seq_along(1:nrow(frame))]
   
   #Get method
-  frame[, method := strsplit(scene, "_")[[1]][7], by = seq_along(1:nrow(frame))]
+  frame[, metric := substr(strsplit(scene, "_")[[1]][7], 1, 3), by = seq_along(1:nrow(frame))]
   
   #Order 
-  frame <- frame[order(VI, method)]
+  frame <- frame[order(VI, metric)]
   
   #N scenes
   n_scenes <- nrow(frame)
@@ -87,11 +87,11 @@ vi_extraction <- function(root_path, vector_path) {
                           
                           values_melted <- melt(as.data.table(values), 
                                                 id.vars = c("ID", "weight", "x", "y"), 
-                                                variable.name = "date",
+                                                variable.name = "year",
                                                 value.name = "value")
                           
                           values_melted$VI <- frame$VI[i]
-                          values_melted$method <- frame$method[i]
+                          values_melted$metric <- frame$metric[i]
                           
                           #Remove residuals
                           rm(list = c("VI", "values"))
@@ -123,15 +123,15 @@ vi_extraction <- function(root_path, vector_path) {
   
   #Order complete
   complete <- complete[, c(1, 11, 3:6, 7, 10, 9, 8)]
-  colnames(complete)[4:6] <- c("x", "y", "weight")
+  complete <- na.exclude(complete)
   
   #Create date
-  complete$date <- as.Date(paste0(substr(complete$date, 1, 4), "-",
-                                  substr(complete$date, 5, 6), "-",
-                                  substr(complete$date, 7, 8)))
+  #complete$date <- as.Date(paste0(substr(complete$date, 1, 4), "-",
+  #                                substr(complete$date, 5, 6), "-",
+  #                                substr(complete$date, 7, 8)))
   
-  complete[method == "TSI.tif", method := "TSI"]
-  complete[method == "TSS.tif", method := "TSS"]
+  #complete[method == "TSI.tif", method := "TSI"]
+  #complete[method == "TSS.tif", method := "TSS"]
   
   #Export
   fwrite(complete, out_path, sep = "\t")
