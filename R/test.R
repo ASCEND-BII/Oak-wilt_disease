@@ -95,7 +95,7 @@ for(j in 1:length(n_pixel)) {
                         intercept = trend$coefficients[1],
                         rsq = summary(trend)$r.squared,
                         maxCRE = sub_data$CRE[4],
-                        minNDW = sub_data$NDW[4],
+                        minNDW = tanh((sub_data$NDW[4]/10000)^2)*10000,
                         init_KDW = sub_data$KNV[1],
                         mean_KDW = mean(sub_data$KNV))
   
@@ -104,8 +104,14 @@ for(j in 1:length(n_pixel)) {
 }
 
 slope <- subset(slope, mean_KDW >= 5000)
+slope <- subset(slope, minNDW >= 5000)
 
 ggplot(slope, aes(x= condition, y= slope, fill = condition)) +
+  geom_boxplot() +
+  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+  geom_jitter(color="black", size=0.4, alpha=0.9)
+
+ggplot(slope, aes(x= condition, y= intercept, fill = condition)) +
   geom_boxplot() +
   scale_fill_viridis(discrete = TRUE, alpha=0.6) +
   geom_jitter(color="black", size=0.4, alpha=0.9)
@@ -256,17 +262,17 @@ fitControl <- trainControl(method = "repeatedcv",
                            summaryFunction = twoClassSummary,
                            savePredictions = TRUE)
 
-wilte_names <- c("factor_wilted", "slope", "maxCRE", "minNDW", "init_KDW")
-healthy_names <- c("factor_healthy", "slope", "maxCRE", "minNDW", "init_KDW")
-dead_names <- c("factor_dead", "slope", "maxCRE", "minNDW", "init_KDW")
+wilted_names <- c("factor_wilted", "slope", "maxCRE", "init_KDW", "mean_KDW")
+healthy_names <- c("factor_healthy", "slope", "maxCRE", "init_KDW", "mean_KDW")
+dead_names <- c("factor_dead", "slope", "maxCRE", "init_KDW", "mean_KDW")
 
 #Select columns of interest
 wilted_weights <- wilted_training$weight
-wilted_training <- wilted_training[, c("factor_wilted", "slope", "maxCRE", "minNDW", "init_KDW")]
+wilted_training <- wilted_training[, ..wilted_names]
 healthy_weights <- healthy_training$weight
-healthy_training <- healthy_training[, c("factor_healthy", "slope", "maxCRE", "minNDW", "init_KDW")]
+healthy_training <- healthy_training[, ..healthy_names]
 dead_weights <- dead_training$weight
-dead_training <- dead_training[, c("factor_dead", "slope", "maxCRE", "minNDW", "init_KDW")]
+dead_training <- dead_training[, ..dead_names]
 
 #Model
 model_training <- function(wilted_training, healthy_training, dead_training) {
@@ -314,9 +320,9 @@ saveRDS(models, "data/models/models.rds")
 # Model Testing
 
 #Select columns of interest
-wilted_testing <- wilted_testing[, c("factor_wilted", "slope", "maxCRE", "minNDW", "init_KDW")]
-healthy_testing <- healthy_testing[, c("factor_healthy", "slope", "maxCRE", "minNDW", "init_KDW")]
-dead_testing <- dead_testing[, c("factor_dead", "slope", "maxCRE", "minNDW", "init_KDW")]
+wilted_testing <- wilted_testing[, ..wilted_names]
+healthy_testing <- healthy_testing[, ..healthy_names]
+dead_testing <- dead_testing[, ..dead_names]
 
 #Model testing
 
