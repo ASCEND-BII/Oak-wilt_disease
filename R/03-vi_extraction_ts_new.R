@@ -32,7 +32,7 @@ threads <- 4
 #-------------------------------------------------------------------------------
 #Arguments
 
-vi_extraction <- function(root_path, vector_path) {
+vi_extraction <- function(root_path, vector_path, out_path) {
   
   #Load vector
   vector <- vect(vector_path)
@@ -137,6 +137,10 @@ vi_extraction <- function(root_path, vector_path) {
 root_path <- "F:/FORCE/level3_VI/X0015_Y0024"
 vector_path <- "F:/FORCE/level3_shifted/training_X0015_0024.gpkg"
 out_path <- "F:/FORCE/level3_shifted/X0015_0024_VI.txt"
-threads <- 10
 
-vi_extraction(root_path, out_path, threads)
+path <- "E:/FORCE/corregistration/application/level3_shifted_phenology"
+root_path <- paste0(path, "/X0014_Y0024")
+vector_path <- paste0(path, "/training_X0014_0024.gpkg")
+out_path <- paste0(path, "/X0014_0024_phenology.txt")
+
+vi_extraction(root_path, vector_path, out_path)
