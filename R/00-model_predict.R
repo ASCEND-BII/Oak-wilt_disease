@@ -1,19 +1,9 @@
-model_predict <- function(CCI_year, CRE_year, NDW_year, KNV_year, model) {
+model_predict <- function(scene, model) {
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  numerador <- exp(scene$dCCI * model$finalModel$coefficients[2] +
-                   scene$dNDW * model$finalModel$coefficients[3] +
-                   scene$dCRE * model$finalModel$coefficients[4] +
-                   scene$kND * model$finalModel$coefficients[5] +
+  numerador <- exp(scene$VGV * model$finalModel$coefficients[2] +
+                   scene$VSS * model$finalModel$coefficients[3] +
+                   scene$VPA * model$finalModel$coefficients[4] +
+                   scene$IGS * model$finalModel$coefficients[5] +
                    model$finalModel$coefficients[1])
   
   denominador <- 1 + numerador
