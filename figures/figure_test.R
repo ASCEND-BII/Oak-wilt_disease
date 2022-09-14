@@ -1,8 +1,13 @@
 #VSS
 library(ggpubr)
 
+
+data <- data[year == "2019"]
+
+data <- data[condition != "wilted"]
+
 col <- colnames(data)
-col <- col[9:47]
+col <- col[11:48]
 n_col <- length(col)
 
 for(i in 1:n_col) {

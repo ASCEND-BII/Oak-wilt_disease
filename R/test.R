@@ -10,57 +10,43 @@ library(caret)
 library(ggplot2)
 library(viridis)
 library(terra)
-library(doParallel)
 
 #-------------------------------------------------------------------------------
 # Root path
 
-path <- "/media/antonio/antonio_ssd/FORCE"
+path <- "/media/antonio/antonio_ssd/FORCE/corregistration/application/level3_shifted_phenology"
 path <- "E:/FORCE"
 
 #-------------------------------------------------------------------------------
 # Reading and cleaning
 
 #Reading -------------
-X0014_Y0024 <- fread(paste0(path, "/level3_shifted/X0014_0024_VI_clean.txt"))
-X0015_Y0024 <- fread(paste0(path, "/level3_shifted/X0015_0024_VI_clean.txt"))
+X0014_Y0024 <- fread(paste0(path, "/X0014_0024_phenology_clean.txt"))
+X0015_Y0024 <- fread(paste0(path, "/X0015_0024_phenology_clean.txt"))
 #X0016_Y0024 <- fread(paste0(path, "/model/data/X0016_0024_dVI.txt"))
-
-#Add tiles
-X0014_Y0024$tile <- "X0014_Y0024"
-X0015_Y0024$tile <- "X0015_Y0024"
-#X0016_Y0024$tile <- "X0016_Y0024"
 
 #rbind tiles
 data <- rbind(X0014_Y0024, X0015_Y0024)
 
-#Cleaning -------------
-
-#Subset for 2019
-data <- subset(data, year(as.Date(date)) == 2019)
-data <- data[, c(12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 10)]
-data <- subset(data, as.Date(date) >= as.Date("2019-03-01"))
-data <- subset(data, as.Date(date) <= as.Date("2019-11-30"))
-
-#Look for area features
+#Look for area and year features
 data <- subset(data, area >= (pi*3^2)) #radios higher than 3m
+data <- data[year == "2019"]
 
 #NA exclude
 #Unique combination
 remove <- na.exclude(data)
-unique_IDs <- remove[, .N, by= c("tile", "ID", "condition", "x", "y")]
-unique_IDs <- unique_IDs[N == max(unique_IDs$N)]
+unique_IDs <- remove[, .N, by= c("tile", "ID", "condition")]
 unique_IDs$N <- 1:nrow(unique_IDs)
 
 #Final to use
-data <- merge(unique_IDs, data, by = c("tile", "ID", "condition", "x", "y"), all.x = TRUE, all.y = FALSE)
+data <- merge(unique_IDs, data, by = c("tile", "ID", "condition"), all.x = TRUE, all.y = FALSE)
 data$row <- 1:nrow(data)
 
 #Clean by weight
-frame <- data[, row[which.max(weight)], by = c("ID", "date")]
-colnames(frame)[3] <- "row"
-frame <- na.exclude(frame)
-data <- data[frame$row, .SD, .SDcols = c(1:13)]
+#frame <- data[, row[which.max(weight)], by = c("ID", "date")]
+#colnames(frame)[3] <- "row"
+#frame <- na.exclude(frame)
+#data <- data[frame$row, .SD, .SDcols = c(1:13)]
 
 #ggplot(data) +
 #  geom_line(aes(x = date, y = CCI/10000, colour = condition, group = interaction(N))) +
@@ -102,44 +88,35 @@ for(j in 1:length(n_pixel)) {
                         CCI = trend$coefficients[2],
                         intercept = trend$coefficients[1],
                         rsq = summary(trend)$r.squared,
-<<<<<<< HEAD
                         maxCRE = sub_data$CRE[4],
                         minNDW = tanh((sub_data$NDW[4]/10000)^2)*10000,
                         init_KDW = sub_data$KNV[1],
                         mean_KDW = mean(sub_data$KNV))
-=======
                         CRE = (sub_data$CRE[10] - sub_data$CRE[3]),
                         NDW = sub_data$NDW[9],
                         KNV = trend_kNDVI$coefficients[2],
                         KNV_mean = sub_data$KNV[9])
->>>>>>> 43a5d42043a1eda545a3954f9913da67c924eaa0
-  
   slope <- rbind(slope, results)
   
 }
 
-<<<<<<< HEAD
+
 slope <- subset(slope, mean_KDW >= 5000)
 slope <- subset(slope, minNDW >= 5000)
-=======
 slope <- subset(slope, KNV_mean >= 4000)
->>>>>>> 43a5d42043a1eda545a3954f9913da67c924eaa0
 
 ggplot(slope, aes(x= condition, y= CCI, fill = condition)) +
   geom_boxplot() +
   scale_fill_viridis(discrete = TRUE, alpha=0.6) +
   geom_jitter(color="black", size=0.4, alpha=0.9)
 
-<<<<<<< HEAD
 ggplot(slope, aes(x= condition, y= intercept, fill = condition)) +
   geom_boxplot() +
   scale_fill_viridis(discrete = TRUE, alpha=0.6) +
   geom_jitter(color="black", size=0.4, alpha=0.9)
 
 ggplot(slope, aes(x= condition, y= maxCRE, fill = condition)) +
-=======
 ggplot(slope, aes(x= condition, y= CRE, fill = condition)) +
->>>>>>> 43a5d42043a1eda545a3954f9913da67c924eaa0
   geom_boxplot() +
   scale_fill_viridis(discrete = TRUE, alpha=0.6) +
   geom_jitter(color="black", size=0.4, alpha=0.9)
