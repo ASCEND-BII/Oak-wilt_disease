@@ -32,22 +32,18 @@ data <- rbind(X0014_Y0024, X0015_Y0024)
 data <- subset(data, area >= (pi*3^2)) #radios higher than 3m
 data <- data[year == "2019"]
 
-#NA exclude
 #Unique combination
 remove <- na.exclude(data)
 unique_IDs <- remove[, .N, by= c("tile", "ID", "condition")]
 unique_IDs$N <- 1:nrow(unique_IDs)
 
 #Final to use
-data <- merge(unique_IDs, data, by = c("tile", "ID", "condition"), all.x = TRUE, all.y = FALSE)
+data <- merge(unique_IDs, data, by = c("tile", "ID", "condition"), 
+              all.x = TRUE, all.y = FALSE)
 data$row <- 1:nrow(data)
 
 #-------------------------------------------------------------------------------
 # Model preparation
-
-#Read
-#data <- fread(paste0(path, "/model/data/data_clean.csv"))
-#data <- subset(data, weight >= 0.5)
 
 #Data split
 data[condition == "wilted", factor_wilted := "wilted", ]
@@ -70,10 +66,6 @@ frame <- na.exclude(frame)
 data <- merge(frame, data, by = c("N", "VI", "row"), all.x = TRUE, all.y = FALSE)
 data <- data[weight >= 0.5]
 
-metrics <- c("tile", "condition", "factor_wilted", "factor_healthy", "factor_dead", "weight", "area", "VGV", "VGA", "VPA", "RMF")
-
-data <- data[, ..metrics]
-
 #Look for out layers
 #remove_outliers <- function(x, na.rm = TRUE, ...) {
 #  qnt <- quantile(x, probs=c(.25, .75), na.rm = na.rm, ...)
@@ -94,8 +86,8 @@ data <- data[, ..metrics]
 #Data partitions ---------------------------------------------------------------
 #Condition ---------------------------
 
-data <- fread("master.csv")
-data <- data[VI == "CCI"]
+#data <- fread("master.csv")
+#data <- data[VI == "CCI"]
 
 table(data$condition) #625 529 
 
@@ -222,17 +214,17 @@ model_training <- function(condition_training, wilted_training, healthy_training
                              savePredictions = TRUE)
   
   #Repeated 10-fold cross-validation
-  #cfitControl <- trainControl(method = "repeatedcv",
-  #                            number = 10,
-  #                            repeats = 10,
-  #                            classProbs = TRUE,
-  #                            savePredictions = TRUE)
+  cfitControl <- trainControl(method = "repeatedcv",
+                              number = 10,
+                              repeats = 10,
+                              classProbs = TRUE,
+                              savePredictions = TRUE)
   
   #set.seed(825)
-  #condition_model <- train(condition ~ ., data = condition_training, 
-  #                         method = 'bayesglm', 
-  #                         trControl = cfitControl)
-  #weights = condition_weights*100)
+  condition_model <- train(condition ~ ., data = condition_training, 
+                           method="lda", 
+                           trControl = cfitControl,
+                           weights = condition_weights * 100)
   
   set.seed(825)
   wilted_model <- train(factor_wilted ~ ., data = wilted_training, 
@@ -255,7 +247,8 @@ model_training <- function(condition_training, wilted_training, healthy_training
                       weights = dead_weights*100,
                       metric = "ROC")
   
-  return(list(wilted = wilted_model,
+  return(list(condition = condition_model,
+              wilted = wilted_model,
               healthy = healthy_model,
               dead = dead_model))
   
@@ -278,9 +271,20 @@ dead_testing <- dead_testing[, ..dead_names]
 #Model testing
 
 model_testing <- function(models, 
+                          condition_training, condition_testing,
                           wilted_training, wilted_testing, 
                           healthy_training, healthy_testing, 
                           dead_training, dead_testing) {
+  
+  #Condition
+  condition_training_m <- data.frame(observed = as.factor(condition_training$condition),
+                                     predicted = predict(models$condition))
+  
+  condition_testing_m <- data.frame(observed = as.factor(condition_testing$condition),
+                                    predicted = predict(models$condition, newdata = condition_testing))
+  
+  condition_training_cm <- caret::confusionMatrix(condition_training_m$observed, condition_training_m$predicted)
+  condition_testing_cm <- caret::confusionMatrix(condition_testing_m$observed, condition_testing_m$predicted)
   
   #Wilted
   wilted_training_m <- data.frame(observed = as.factor(wilted_training$factor_wilted),
@@ -313,6 +317,14 @@ model_testing <- function(models,
   dead_testing_cm <- caret::confusionMatrix(dead_testing_m$observed, dead_testing_m$predicted)
   
   #Merge
+  condition_training <- cbind(data.table(Condition = "Condition", Step = "Training"), 
+                              matrix(condition_training_cm$overall, nrow = 1), 
+                              matrix(condition_training_cm$byClass, nrow = 1))
+  
+  condition_testing <- cbind(data.table(Condition = "Condition", Step = "Testing"), 
+                          matrix(condition_testing_cm$overall, nrow = 1), 
+                          matrix(condition_testing_cm$byClass, nrow = 1))
+  
   wilted_training <- cbind(data.table(Condition = "Wilted", Step = "Training"), 
                            matrix(wilted_training_cm$overall, nrow = 1), 
                            matrix(wilted_training_cm$byClass, nrow = 1))
@@ -337,6 +349,10 @@ model_testing <- function(models,
                         matrix(dead_testing_cm$overall, nrow = 1), 
                         matrix(dead_testing_cm$byClass, nrow = 1))
   
+  lda <- rbind(condition_training, condition_testing)
+  colnames(lda)[3:9] <- names(condition_training_cm$overall)
+  #colnames(frame)[10:20] <- names(condition_training_cm$byClass)
+  
   frame <- rbind(wilted_training, wilted_testing,
                  healthy_training, healthy_testing,
                  dead_training, dead_testing)
@@ -344,11 +360,12 @@ model_testing <- function(models,
   colnames(frame)[3:9] <- names(dead_training_cm$overall)
   colnames(frame)[10:20] <- names(dead_training_cm$byClass)
   
-  return(frame)
+  return(list(lda = lda, bglm = frame))
   
 }
 
 validation <- model_testing(models, 
+                            condition_training, condition_testing,
                             wilted_training, wilted_testing, 
                             healthy_training, healthy_testing, 
                             dead_training, dead_testing)
