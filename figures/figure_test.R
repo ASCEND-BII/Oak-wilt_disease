@@ -1,19 +1,24 @@
 #VSS
 library(ggpubr)
+library(ggstatsplot)
+
+data <- fread(paste0(path, "/master_observations.csv"))
 
 
-data <- data[year == "2019"]
-data <- data[year == "2019"]
-
-data <- data[condition != "wilted"]
+data$V_ratio <- data$VLV/data$VEV
+data$P_ration <- data$VPA/data$VPS
+data$I_proportion <- (data$IBT - data$IST)/data$IBT
+data$S_proportion <- (data$VSS - data$VES)/data$VSS
+data$R_proportion <- data$IFR/data$IBT
 
 col <- colnames(data)
-col <- col[12:50]
+col <- col[9:length(col)]
 n_col <- length(col)
+
 
 for(i in 1:n_col) {
   
-  select <- c("condition", "VI", col[i])
+  select <- c("Condition", "VI", col[i])
   
   frame <- data[, ..select]
   colnames(frame) <- c("condition", "VI", "value")
@@ -85,7 +90,7 @@ for(i in 1:n_col) {
   plot <- ggarrange(CCI, CRE, NDM, KNV,
                     ncol = 2, nrow = 2)
   
-  name <- paste0("figures/", col[i], ".jpeg")
+  name <- paste0("/media/antonio/antonio_ssd/TRAINING/figures/", col[i], ".jpeg")
   
   ggsave(
     filename = name,
@@ -97,4 +102,3 @@ for(i in 1:n_col) {
     bg = "white")
   
 }
-

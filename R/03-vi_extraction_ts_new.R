@@ -1,5 +1,5 @@
 ################################################################################
-##### 03 - Extraction for pixles from L3 products
+##### 03 - Extraction for pixels from L3 products
 ################################################################################
 
 #' @description Batch extraction of values of VI using a vector file 
@@ -21,13 +21,12 @@ library(foreach)
 #' @param out_path: path and name of the .txt outputs
 #' @param threads: the number of threads to use for parallel processing
 
-path <- "/media/antonio/antonio_ssd/FORCE/aplication"
-path <- "E:/FORCE/corregistration/application/level3_shifted_phenology"
+path <- "/media/antonio/antonio_ssd/TRAINING"
 
-root_path <- paste0(path, "/X0015_Y0024")
-vector_path <- paste0(path, "/training_X0015_0024.gpkg")
-out_path <- paste0(path, "/X0015_0024_phenology.txt")
-threads <- 4
+root_path <- paste0(path, "/level3/X0015_Y0024")
+vector_path <- paste0(path, "/NAIP/X0015_Y0024/X0015_Y0024.gpkg")
+out_path <- paste0(path, "/level3/X0015_Y0024_ts.txt")
+vi_extraction(root_path, vector_path, out_path)
 
 #-------------------------------------------------------------------------------
 #Arguments
@@ -74,16 +73,11 @@ vi_extraction <- function(root_path, vector_path, out_path) {
     values <- extract(VI, 
                       vector, 
                       method = "simple",
-                      factors = TRUE,
-                      cells = FALSE,
-                      xy = TRUE,
-                      exact = TRUE,
-                      weights = TRUE, 
-                      touches = TRUE)
+                      xy = TRUE)
     
     values_melted <- melt(as.data.table(values), 
-                          id.vars = c("ID", "weight", "x", "y"), 
-                          variable.name = "year",
+                          id.vars = c("ID", "x", "y"), 
+                          variable.name = "date",
                           value.name = "value")
     
     values_melted$VI <- frame$VI[i]
@@ -99,31 +93,33 @@ vi_extraction <- function(root_path, vector_path, out_path) {
   }
   
   #Change names
-  colnames(extraction) <- c("ID", "x", "y", "weight", "year", "value", "VI", "metric")
+  colnames(extraction) <- c("ID", "x", "y", "date", "value", "VI", "metric")
   
   #Prepare vector to merge
   area <- expanse(vector)
   vector <- as.data.frame(vector)
   vector$ID <- 1:nrow(vector)
   vector <- as.data.table(vector)
-  vector$area <- area
+  #vector$area <- area
   
   #Merge
   complete <- merge(vector, extraction, by = "ID", all.x = TRUE, all.y = TRUE)
   
   #Add names
-  complete[Condition == "1", condition := "healthy"]
-  complete[Condition == "2", condition := "wilted"]
-  complete[Condition == "3", condition := "dead"]
+  complete[condition == "1", Condition := "healthy"]
+  complete[condition == "2", Condition := "wilted"]
+  complete[condition == "3", Condition := "dead"]
   
   #Order complete
-  complete <- complete[, c(1, 11, 3:6, 7, 10, 9, 8)]
-  complete <- na.exclude(complete)
-  
-  #Create date
-  #complete$date <- as.Date(paste0(substr(complete$date, 1, 4), "-",
-  #                                substr(complete$date, 5, 6), "-",
-  #                                substr(complete$date, 7, 8)))
+  complete <- complete[, c(1, 9, 3:4, 7, 8, 5, 6)]
+
+  #Modify year
+  #complete$year <- as.numeric(substr(complete$year, 6, 9))
+  #complete <- complete[year != 2016]
+  complete$date <- as.character(complete$date)
+  complete$date <- as.Date(paste0(substr(complete$date, 1, 4), "-",
+                                  substr(complete$date, 5, 6), "-",
+                                  substr(complete$date, 7, 8)))
   
   #complete[method == "TSI.tif", method := "TSI"]
   #complete[method == "TSS.tif", method := "TSS"]
@@ -134,13 +130,42 @@ vi_extraction <- function(root_path, vector_path, out_path) {
 }
 
 #' @example 
-root_path <- "F:/FORCE/level3_VI/X0015_Y0024"
-vector_path <- "F:/FORCE/level3_shifted/training_X0015_0024.gpkg"
-out_path <- "F:/FORCE/level3_shifted/X0015_0024_VI.txt"
+root_path <- paste0(path, "/level3/X0014_Y0024")
+vector_path <- paste0(path, "/NAIP/X0014_Y0024/X0014_Y0024.gpkg")
+out_path <- paste0(path, "/level3_ts-pixels/X0014_Y0024_ts.txt")
+vi_extraction(root_path, vector_path, out_path)
 
-path <- "E:/FORCE/corregistration/application/level3_shifted_phenology"
-root_path <- paste0(path, "/X0014_Y0024")
-vector_path <- paste0(path, "/training_X0014_0024.gpkg")
-out_path <- paste0(path, "/X0014_0024_phenology.txt")
+root_path <- paste0(path, "/level3/X0015_Y0024")
+vector_path <- paste0(path, "/NAIP/X0015_Y0024/X0015_Y0024.gpkg")
+out_path <- paste0(path, "/level3_ts-pixels/X0015_Y0024_ts.txt")
+vi_extraction(root_path, vector_path, out_path)
 
+root_path <- paste0(path, "/level3/X0016_Y0024")
+vector_path <- paste0(path, "/NAIP/X0016_Y0024/X0016_Y0024.gpkg")
+out_path <- paste0(path, "/level3_ts-pixels/X0016_Y0024_ts.txt")
+vi_extraction(root_path, vector_path, out_path)
+
+root_path <- paste0(path, "/level3/X0016_Y0025")
+vector_path <- paste0(path, "/NAIP/X0016_Y0025/X0016_Y0025.gpkg")
+out_path <- paste0(path, "/level3_ts-pixels/X0016_Y0025_ts.txt")
+vi_extraction(root_path, vector_path, out_path)
+
+root_path <- paste0(path, "/level3/X0016_Y0027")
+vector_path <- paste0(path, "/NAIP/X0016_Y0027/X0016_Y0027.gpkg")
+out_path <- paste0(path, "/level3_ts-pixels/X0016_Y0027_ts.txt")
+vi_extraction(root_path, vector_path, out_path)
+
+root_path <- paste0(path, "/level3/X0017_Y0024")
+vector_path <- paste0(path, "/NAIP/X0017_Y0024/X0017_Y0024.gpkg")
+out_path <- paste0(path, "/level3_ts-pixels/X0017_Y0024_ts.txt")
+vi_extraction(root_path, vector_path, out_path)
+
+root_path <- paste0(path, "/level3/X0017_Y0026")
+vector_path <- paste0(path, "/NAIP/X0017_Y0026/X0017_Y0026.gpkg")
+out_path <- paste0(path, "/level3_ts-pixels/X0017_Y0026_ts.txt")
+vi_extraction(root_path, vector_path, out_path)
+
+root_path <- paste0(path, "/level3/X0017_Y0027")
+vector_path <- paste0(path, "/NAIP/X0017_Y0027/X0017_Y0027.gpkg")
+out_path <- paste0(path, "/level3_ts-pixels/X0017_Y0027_ts.txt")
 vi_extraction(root_path, vector_path, out_path)

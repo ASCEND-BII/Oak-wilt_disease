@@ -9,79 +9,146 @@ library(data.table)
 library(caret)
 library(ggplot2)
 library(viridis)
-library(terra)
 
 #-------------------------------------------------------------------------------
 # Root path
 
-path <- "/media/antonio/antonio_ssd/FORCE/corregistration/application/level3_shifted_phenology"
-path <- "E:/FORCE/corregistration/application/level3_shifted_phenology"
+path <- "/media/antonio/antonio_ssd/TRAINING/level3_phenology-pixels"
 
 #-------------------------------------------------------------------------------
 # Reading and cleaning
 
 #Reading -------------
-X0014_Y0024 <- fread(paste0(path, "/X0014_0024_phenology_clean.txt"))
-X0015_Y0024 <- fread(paste0(path, "/X0015_0024_phenology_clean.txt"))
-#X0016_Y0024 <- fread(paste0(path, "/model/data/X0016_0024_dVI.txt"))
+X0014_Y0024 <- fread(paste0(path, "/X0014_Y0024_phenology.txt"))
+X0015_Y0024 <- fread(paste0(path, "/X0015_Y0024_phenology.txt"))
+X0016_Y0024 <- fread(paste0(path, "/X0016_Y0024_phenology.txt"))
+X0016_Y0025 <- fread(paste0(path, "/X0016_Y0025_phenology.txt"))
+X0016_Y0027 <- fread(paste0(path, "/X0016_Y0027_phenology.txt"))
+X0017_Y0026 <- fread(paste0(path, "/X0017_Y0026_phenology.txt"))
+X0017_Y0027 <- fread(paste0(path, "/X0017_Y0027_phenology.txt"))
+
+#Add tile
+X0014_Y0024$tile <- "X0014_Y0024"
+X0015_Y0024$tile <- "X0015_Y0024"
+X0016_Y0024$tile <- "X0016_Y0024"
+X0016_Y0025$tile <- "X0016_Y0025"
+X0016_Y0027$tile <- "X0016_Y0027"
+X0017_Y0026$tile <- "X0017_Y0026"
+X0017_Y0027$tile <- "X0017_Y0027"
 
 #rbind tiles
-data <- rbind(X0014_Y0024, X0015_Y0024)
+data <- rbind(X0014_Y0024, X0015_Y0024, X0016_Y0024, 
+              X0016_Y0025, X0016_Y0027, X0017_Y0026, 
+              X0017_Y0027)
+data <- data[, c(9, 1:8)]
 
 #Look for area and year features
-data <- subset(data, area >= (pi*3^2)) #radios higher than 3m
 data <- data[year == "2019"]
 
 #Unique combination
 remove <- na.exclude(data)
-unique_IDs <- remove[, .N, by= c("tile", "ID", "condition")]
+unique_IDs <- remove[, .N, by= c("tile", "ID", "Condition")]
 unique_IDs$N <- 1:nrow(unique_IDs)
 
 #Final to use
-data <- merge(unique_IDs, data, by = c("tile", "ID", "condition"), 
+data <- merge(unique_IDs, data, by = c("tile", "ID", "Condition"), 
               all.x = TRUE, all.y = FALSE)
-data$row <- 1:nrow(data)
+
+#Dcast
+data <- dcast(data, formula = N + tile + ID + x + y + Condition + year + VI ~ metric)
+
+#Select columns of importance
+data <- data[, c("N", "tile", "ID", "x", "y", "Condition", "year", "VI",
+                 "VEM", "VSS", "VPS", "VMS", "VES", "VLM", "VEV", "VAV", "VLV", "VBL", "VSA", "VGA", "VPA", "VGM", "VGV", 
+                 "IST", "IBL", "IBT", "IGS", "IRR",
+                 "IFR", "RAR", "RAF", "RMR", "RMF")]
+
+#Use just clean observations
+clean_data <- fread("/media/antonio/antonio_ssd/TRAINING/level3_ts-pixels/clean_samples.csv")
+
+#Samples clean
+data <- merge(clean_data, data, by = c("x", "y", "Condition"), all.x = TRUE)
+
+fwrite(data, paste0(path, "/master_observations.csv"))
 
 #-------------------------------------------------------------------------------
-# Model preparation
+# New metrics
+data$VVR <- data$VLV/data$VEV
+data$PPV <- data$VPA/data$VGM
+data$CVG <- data$VGV/data$VGM
+data$CVG <- data$VGV/data$VGM
 
-#Data split
-data[condition == "wilted", factor_wilted := "wilted", ]
-data[condition != "wilted", factor_wilted := "non_wilted", ]
 
-data[condition == "healthy", factor_healthy := "healthy", ]
-data[condition != "healthy", factor_healthy := "non_healthy", ]
+data$PIT <- (data$IBT - data$IST)/data$IBT
+data$S_proportion <- (test$VSS - test$VES)/test$VSS
+data$R_proportion <- test$IFR/test$IBT
 
-data[condition == "dead", factor_dead := "dead", ]
-data[condition != "dead", factor_dead := "non_dead", ]
 
-data <- data[VI == "CCI"]
 
-#Get pixel with the high weight
-frame <- data[, row[which.max(weight)], by = c("N", "VI")]
-colnames(frame)[3] <- "row"
-frame <- na.exclude(frame)
+data <- fread(paste0(path, "/master_observations.csv"))
 
-#Select rows
-data <- merge(frame, data, by = c("N", "VI", "row"), all.x = TRUE, all.y = FALSE)
-data <- data[weight >= 0.5]
+ggplot(data[VI == "CCI" & VPA > 0], aes(x= Condition, y= IFR, fill = Condition)) +
+  geom_boxplot() +
+  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+  geom_jitter(color="black", size=0.4, alpha=0.9)
 
-#Look for out layers
-#remove_outliers <- function(x, na.rm = TRUE, ...) {
-#  qnt <- quantile(x, probs=c(.25, .75), na.rm = na.rm, ...)
-#  H <- 1.5 * IQR(x, na.rm = na.rm)
-#  y <- x
-#  y[x < (qnt[1] - H)] <- NA
-#  y[x > (qnt[2] + H)] <- NA
-#  y
-#}
+ggplot(data[VI == "CCI" & VPA > 0], aes(x= Condition, y= VPA/10000, fill = Condition)) +
+  geom_boxplot() +
+  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+  geom_jitter(color="black", size=0.4, alpha=0.9)
 
-#data[, VGV := remove_outliers(VGV), by = condition]
-#data[, VGA := remove_outliers(VGA), by = condition]
-#data[, VPA := remove_outliers(VPA), by = condition]
-#data[, RMF := remove_outliers(RMF), by = condition]
+ggplot(data[VI == "CCI" & VPA > 0], aes(x= Condition, y= VPS/10000, fill = Condition)) +
+  geom_boxplot() +
+  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+  geom_jitter(color="black", size=0.4, alpha=0.9)
 
-#data <- na.exclude(data)
+ggplot(data[VI == "CCI" & VPA > 0], aes(x= Condition, y= VGV/10000, fill = Condition)) +
+  geom_boxplot() +
+  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+  geom_jitter(color="black", size=0.4, alpha=0.9)
+
+ggplot(data[VI == "CCI" & VPA > 0], aes(x= Condition, y= IGS/10000, fill = Condition)) +
+  geom_boxplot() +
+  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+  geom_jitter(color="black", size=0.4, alpha=0.9)
+
+ggplot(data[VI == "CCI" & VPA > 0], aes(x= Condition, y= IFR, fill = Condition)) +
+  geom_boxplot() +
+  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+  geom_jitter(color="black", size=0.4, alpha=0.9)
+
+ggplot(data[VI == "CCI" & VPA > 0], aes(x= Condition, y= VLV/VEV, fill = Condition)) +
+  geom_boxplot() +
+  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+  geom_jitter(color="black", size=0.4, alpha=0.9)
+
+ggplot(data[VI == "CCI" & VPA > 0], aes(x= Condition, y= VPA/VPS, fill = Condition)) +
+  geom_boxplot() +
+  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+  geom_jitter(color="black", size=0.4, alpha=0.9)
+
+ggplot(data[VI == "CCI" & VPA > 0], aes(x= Condition, y= ((VSS-VES)/VSS), fill = Condition)) +
+  geom_boxplot() +
+  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+  geom_jitter(color="black", size=0.4, alpha=0.9) +
+  scale_y_continuous(limits = c(0, 1))
+
+ggplot(data[VI == "CCI" & VPA > 0], aes(x= Condition, y= (IBT-IST)/IBT, fill = Condition)) +
+  geom_boxplot() +
+  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+  geom_jitter(color="black", size=0.4, alpha=0.9) 
+
+ggplot(data[VI == "CCI" & VPA > 0], aes(x= Condition, y= ((VSS-VES)/VSS), fill = Condition)) +
+  geom_boxplot() +
+  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+  geom_jitter(color="black", size=0.4, alpha=0.9) +
+  scale_y_continuous(limits = c(-1, 1))
+
+ggplot(data[VI == "CCI" & VPA > 0], aes(x= Condition, y= (IFR/IBT), fill = Condition)) +
+  geom_boxplot() +
+  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+  geom_jitter(color="black", size=0.4, alpha=0.9)
+
 
 #Data partitions ---------------------------------------------------------------
 #Condition ---------------------------
@@ -89,7 +156,7 @@ data <- data[weight >= 0.5]
 #data <- fread("master.csv")
 #data <- data[VI == "CCI"]
 
-table(data$condition) #625 529 
+table(data_kNDVI$Condition) #625 529 
 
 #Split
 ind_condition <- createDataPartition(data$condition,
