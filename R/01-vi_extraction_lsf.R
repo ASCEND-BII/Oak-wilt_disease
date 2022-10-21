@@ -21,11 +21,11 @@ library(foreach)
 #' @param out_path: path and name of the .txt outputs
 #' @param threads: the number of threads to use for parallel processing
 
-path <- "/media/antonio/antonio_ssd/TRAINING"
+path <- "F:/TRAINING"
 
-root_path <- paste0(path, "/level3/X0015_Y0024")
-vector_path <- paste0(path, "/NAIP/X0015_Y0024/X0015_Y0024.gpkg")
-out_path <- paste0(path, "/level3/X0015_Y0024_ts.txt")
+root_path <- paste0(path, "/level3_lsf/X0014_Y0024")
+vector_path <- paste0(path, "/AVIRIS-NG/X0014_Y0024_aviris.gpkg")
+out_path <- paste0(path, "/level3_lsf-pixels/X0014_Y0024_AVIRIS_lsf.txt")
 vi_extraction(root_path, vector_path, out_path)
 
 #-------------------------------------------------------------------------------
@@ -93,7 +93,7 @@ vi_extraction <- function(root_path, vector_path, out_path) {
   }
   
   #Change names
-  colnames(extraction) <- c("ID", "x", "y", "date", "value", "VI", "metric")
+  colnames(extraction) <- c("ID", "x", "y", "year", "value", "VI", "metric")
   
   #Prepare vector to merge
   area <- expanse(vector)
@@ -111,18 +111,12 @@ vi_extraction <- function(root_path, vector_path, out_path) {
   complete[condition == "3", Condition := "dead"]
   
   #Order complete
-  complete <- complete[, c(1, 9, 3:4, 7, 8, 5, 6)]
-
-  #Modify year
-  #complete$year <- as.numeric(substr(complete$year, 6, 9))
-  #complete <- complete[year != 2016]
-  complete$date <- as.character(complete$date)
-  complete$date <- as.Date(paste0(substr(complete$date, 1, 4), "-",
-                                  substr(complete$date, 5, 6), "-",
-                                  substr(complete$date, 7, 8)))
+  #complete <- complete[, c(1, 9, 3:4, 7, 8, 5, 6)]
+  complete <- complete[, c(1, 10, 4:5, 8, 9, 6, 7)]
   
-  #complete[method == "TSI.tif", method := "TSI"]
-  #complete[method == "TSS.tif", method := "TSS"]
+  #Modify year
+  complete$year <- as.numeric(substr(complete$year, 6, 9))
+  complete <- complete[year != 2016]
   
   #Export
   fwrite(complete, out_path, sep = "\t")
@@ -130,42 +124,22 @@ vi_extraction <- function(root_path, vector_path, out_path) {
 }
 
 #' @example 
-root_path <- paste0(path, "/level3/X0014_Y0024")
-vector_path <- paste0(path, "/NAIP/X0014_Y0024/X0014_Y0024.gpkg")
-out_path <- paste0(path, "/level3_ts-pixels/X0014_Y0024_ts.txt")
+root_path <- paste0(path, "/level3_lsf/X0014_Y0024")
+vector_path <- paste0(path, "/AVIRIS-NG/X0014_Y0024_aviris.gpkg")
+out_path <- paste0(path, "/level3_lsf-pixels/X0014_Y0024_AVIRIS_lsf.txt")
 vi_extraction(root_path, vector_path, out_path)
 
-root_path <- paste0(path, "/level3/X0015_Y0024")
-vector_path <- paste0(path, "/NAIP/X0015_Y0024/X0015_Y0024.gpkg")
-out_path <- paste0(path, "/level3_ts-pixels/X0015_Y0024_ts.txt")
+root_path <- paste0(path, "/level3_lsf/X0015_Y0024")
+vector_path <- paste0(path, "/AVIRIS-NG/X0015_Y0024_aviris.gpkg")
+out_path <- paste0(path, "/level3_lsf-pixels/X0015_Y0024_AVIRIS_lsf.txt")
 vi_extraction(root_path, vector_path, out_path)
 
-root_path <- paste0(path, "/level3/X0016_Y0024")
-vector_path <- paste0(path, "/NAIP/X0016_Y0024/X0016_Y0024.gpkg")
-out_path <- paste0(path, "/level3_ts-pixels/X0016_Y0024_ts.txt")
+root_path <- paste0(path, "/level3_lsf/X0016_Y0024")
+vector_path <- paste0(path, "/AVIRIS-NG/X0016_Y0024_aviris.gpkg")
+out_path <- paste0(path, "/level3_lsf-pixels/X0016_Y0024_AVIRIS_lsf.txt")
 vi_extraction(root_path, vector_path, out_path)
 
-root_path <- paste0(path, "/level3/X0016_Y0025")
-vector_path <- paste0(path, "/NAIP/X0016_Y0025/X0016_Y0025.gpkg")
-out_path <- paste0(path, "/level3_ts-pixels/X0016_Y0025_ts.txt")
-vi_extraction(root_path, vector_path, out_path)
-
-root_path <- paste0(path, "/level3/X0016_Y0027")
-vector_path <- paste0(path, "/NAIP/X0016_Y0027/X0016_Y0027.gpkg")
-out_path <- paste0(path, "/level3_ts-pixels/X0016_Y0027_ts.txt")
-vi_extraction(root_path, vector_path, out_path)
-
-root_path <- paste0(path, "/level3/X0017_Y0024")
-vector_path <- paste0(path, "/NAIP/X0017_Y0024/X0017_Y0024.gpkg")
-out_path <- paste0(path, "/level3_ts-pixels/X0017_Y0024_ts.txt")
-vi_extraction(root_path, vector_path, out_path)
-
-root_path <- paste0(path, "/level3/X0017_Y0026")
-vector_path <- paste0(path, "/NAIP/X0017_Y0026/X0017_Y0026.gpkg")
-out_path <- paste0(path, "/level3_ts-pixels/X0017_Y0026_ts.txt")
-vi_extraction(root_path, vector_path, out_path)
-
-root_path <- paste0(path, "/level3/X0017_Y0027")
-vector_path <- paste0(path, "/NAIP/X0017_Y0027/X0017_Y0027.gpkg")
-out_path <- paste0(path, "/level3_ts-pixels/X0017_Y0027_ts.txt")
+root_path <- paste0(path, "/level3_lsf/X0017_Y0024")
+vector_path <- paste0(path, "/AVIRIS-NG/X0017_Y0024_aviris.gpkg")
+out_path <- paste0(path, "/level3_lsf-pixels/X0017_Y0024_AVIRIS_lsf.txt")
 vi_extraction(root_path, vector_path, out_path)
