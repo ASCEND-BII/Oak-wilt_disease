@@ -1,69 +1,51 @@
+library(data.table)
+library(terra)
 
-data <- rast("F:/TRAINING/level3_ts/X0016_Y0024/2016-2022_001-365_HL_TSA_SEN2L_CCI_TSI.tif")
-data <- subset(data, 24:46)
-data <- as.data.table(as.data.frame(data, xy = TRUE, na.rm = TRUE))
-dataaa <- data
+data <- rast("/media/antonio/antonio_ssd/TRAINING/level3_ts/X0016_Y0024/2016-2022_001-365_HL_TSA_SEN2L_CCI_TSI.tif")
+data <- as.data.table(as.data.frame(data, xy = TRUE, na.rm = FALSE))
+ts <- data[, 26:139]
+data <- data[, 1:2]
+date <- colnames(ts)
+date <- as.IDate(paste0(substr(date, 1, 4), "-", substr(date, 5, 6), "-", substr(date, 7, 8)))
+doy <- yday(date)
+year <- year(date)
+doyce <- year(date)*365+doy
 
-val <- as.numeric(as.vector(dataaa[800, 3:25]))
+sample <- ts[1, ]
+sample <- as.numeric(as.vector(sample))
 
-data <- fread("F:/TRAINING/level3_ts-pixels/master_observations.csv")
-data <- subset(data, ID == 100)
-data <- subset(data, tile == "X0014_Y0024")
-data <- subset(data, VI == "CCI")
-data <- subset(data, date >= as.IDate("2016-09-01") &
-                     date <= as.IDate("2022-02-01"))
+n <- normalize(sample, min(sample), max(sample)) 
+r <- doy2rad(doy) #r
+vx <- pcx(n, r) #VX
+vy <- pcy(n, r) #VY
+xav <- xmean(vx) #vx
+yav <- ymean(vy) #vy
+rv_ang <- displacement(yav, xav) #rv_ang
+rv_doy <- rad2doy(rv_ang) #av_doy
+rv_mag <- distance(yav, xav) #rv_mag
+ang_lest <- lest_activity_angle(rv_ang)
+doy_lest <- rad2doy(ang_lest)
+phenological <- season(doy, doy_lest)
 
-plot(data$date, data$value)
-data$doy <- yday(data$date)
+a <- phenoloical_years(as.matrix(ts[1:10]), doy, 16)
 
-r = (data$doy[8:30]/365.0)*(2.0*pi)
+phenological <- a[1,]
 
-rad   = r
-val   = data$value[8:30]
-val   = val - min(val, na.rm = TRUE) + 1
-val <- (val-min(val)) / (max(val)-min(val)) * 100
-
-plot(data$doy[8:30], val)
-
-year  = year(data$date[8:30])
-doy   = data$doy[8:30]
-ce    = year*365+doy 
-pcx   = (val *cos(r))
-pcy   = (val *sin(r))
-
-plot(doy, val)
-plot(pcx, pcy)
-
-x <- mean(pcx, na.rm = TRUE)
-y <- mean(pcy, na.rm = TRUE)
-
-points(mean(pcx, na.rm = TRUE), mean(pcy, na.rm = TRUE), col = "red")
-
-v <- sqrt(x^2 + y^2)
-r <- atan2(y, x)
-if(r > 0) {
-  r = r
-} else {
-  r = r + 2*pi
-}
-
-if(r < pi) {
-  angle = r + pi
-} else {
-  angle = r - pi
-}
-
-rad2d(r, dpc = 365)
+vi_test <- vi_year(sample, 5, phenological)
+doy_test <- doy_year(doy, 5, phenological)
+doy_shifted <- doy_corrected(doy_test, doy_lest, doy_delta = 16)
+vi_min <- min(vi_test)
+vi_max <- max(vi_test)
+normaliz <- normalize(as.vector(vi_test), vi_min, vi_max)
+peak <- peak_activity(as.vector(normaliz), as.vector(doy_shifted))
+cum <- cumulative_observations(as.vector(normaliz))
+cum_interpolated <- interpolation_cumulative(as.vector(cum), doy_shifted, 1:365)
+vi_interpolated <- interpolation_vi(as.vector(vi_test), doy_shifted, 1:365)
+doy_oi <- key_doys(as.vector(cum_interpolated), 15, 80, as.integer(peak[3]))
+slopes <- get_slopes(as.vector(cum_interpolated), as.vector(vi_interpolated), as.vector(doy_oi))
+values <- get_values(as.vector(doy_oi), as.vector(vi_test), as.vector(doy_shifted), 1:365)
 
 
-cum <- cumsum(val)
-cum <- (cum-min(cum)) / (max(cum)-min(cum)) * 100
+plot(doy_test, vi_test)
+abline(v = 165)
 
-
-
-plot(doy, cum)
-abline(v = rad2d(r, dpc = 365))
-abline(h = 85)
-abline(h = 15)
-plot(doy, val)
-abline(v = rad2d(r, dpc = 365))
