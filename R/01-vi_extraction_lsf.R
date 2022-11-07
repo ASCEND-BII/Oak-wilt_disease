@@ -10,8 +10,6 @@
 
 library(data.table)
 library(terra)
-library(doParallel)
-library(foreach)
 
 #-------------------------------------------------------------------------------
 #Arguments
@@ -21,17 +19,19 @@ library(foreach)
 #' @param out_path: path and name of the .txt outputs
 #' @param threads: the number of threads to use for parallel processing
 
-path <- "F:/TRAINING"
+path <- "/media/antonio/antonio_ssd/TRAINING"
 
 root_path <- paste0(path, "/level3_lsf/X0014_Y0024")
-vector_path <- paste0(path, "/AVIRIS-NG/X0014_Y0024_aviris.gpkg")
+vector_path <- paste0(path, "/OBSERVATIONS/2018_AVIRIS-NG/X0014_Y0024_aviris.gpkg")
 out_path <- paste0(path, "/level3_lsf-pixels/X0014_Y0024_AVIRIS_lsf.txt")
+year = 2018 
+tile = "X0014_Y0024"
 vi_extraction(root_path, vector_path, out_path)
 
 #-------------------------------------------------------------------------------
 #Arguments
 
-vi_extraction <- function(root_path, vector_path, out_path) {
+vi_extraction <- function(root_path, vector_path, out_path, year, tile) {
   
   #Load vector
   vector <- vect(vector_path)
@@ -51,9 +51,17 @@ vi_extraction <- function(root_path, vector_path, out_path) {
   
   #Get VI
   frame[, VI := strsplit(scene, "_")[[1]][6], by = seq_along(1:nrow(frame))]
+  frame <- subset(frame, VI == "KNV")
   
   #Get method
   frame[, metric := substr(strsplit(scene, "_")[[1]][7], 1, 3), by = seq_along(1:nrow(frame))]
+  
+  #Get normalized
+  VPS <- subset(frame, metric == "VGM")
+  VPS <- rast(paste0(root_path, "/", VPS$scene[1]))
+  VPS <- subset(VPS, paste0("YEAR-", year))
+  VPS[VPS <= 4500] <- NA
+  quantile <- quantile(VPS[], 0.5, na.rm = TRUE)
   
   #Order 
   frame <- frame[order(VI, metric)]
@@ -68,6 +76,7 @@ vi_extraction <- function(root_path, vector_path, out_path) {
     
     #Read
     VI <- rast(paste0(root_path, "/", frame$scene[i]))
+    VI <- subset(VI, paste0("YEAR-", year))
     
     #Extract values
     values <- extract(VI, 
@@ -100,23 +109,24 @@ vi_extraction <- function(root_path, vector_path, out_path) {
   vector <- as.data.frame(vector)
   vector$ID <- 1:nrow(vector)
   vector <- as.data.table(vector)
+  vector$tile <- tile
+  vector$quantile <- quantile
   #vector$area <- area
   
   #Merge
   complete <- merge(vector, extraction, by = "ID", all.x = TRUE, all.y = TRUE)
   
   #Add names
-  complete[condition == "1", Condition := "healthy"]
-  complete[condition == "2", Condition := "wilted"]
-  complete[condition == "3", Condition := "dead"]
+  complete[condition == "1", Condition := "Healthy"]
+  complete[condition == "2", Condition := "Wilted"]
+  complete[condition == "3", Condition := "Dead"]
   
   #Order complete
-  #complete <- complete[, c(1, 9, 3:4, 7, 8, 5, 6)]
-  complete <- complete[, c(1, 10, 4:5, 8, 9, 6, 7)]
+  complete <- complete[, c(3, 1, 11, 5:6, 7, 4, 10, 8)]
+  #complete <- complete[, c(4, 1, 12, 6:7, 8, 5, 11, 9)]
   
   #Modify year
   complete$year <- as.numeric(substr(complete$year, 6, 9))
-  complete <- complete[year != 2016]
   
   #Export
   fwrite(complete, out_path, sep = "\t")
@@ -124,22 +134,97 @@ vi_extraction <- function(root_path, vector_path, out_path) {
 }
 
 #' @example 
+#' 
+#' AVIRIS-NG 2018
 root_path <- paste0(path, "/level3_lsf/X0014_Y0024")
-vector_path <- paste0(path, "/AVIRIS-NG/X0014_Y0024_aviris.gpkg")
-out_path <- paste0(path, "/level3_lsf-pixels/X0014_Y0024_AVIRIS_lsf.txt")
-vi_extraction(root_path, vector_path, out_path)
+vector_path <- paste0(path, "/OBSERVATIONS/2018_AVIRIS-NG/X0014_Y0024_aviris.gpkg")
+out_path <- paste0(path, "/level3_lsf-pixels/AVIRIS-NG_2018/X0014_Y0024_2018_lsf.txt")
+year = 2018 
+tile = "X0014_Y0024"
+vi_extraction(root_path, vector_path, out_path, year, tile)
 
 root_path <- paste0(path, "/level3_lsf/X0015_Y0024")
-vector_path <- paste0(path, "/AVIRIS-NG/X0015_Y0024_aviris.gpkg")
-out_path <- paste0(path, "/level3_lsf-pixels/X0015_Y0024_AVIRIS_lsf.txt")
-vi_extraction(root_path, vector_path, out_path)
+vector_path <- paste0(path, "/OBSERVATIONS/2018_AVIRIS-NG/X0015_Y0024_aviris.gpkg")
+out_path <- paste0(path, "/level3_lsf-pixels/AVIRIS-NG_2018/X0015_Y0024_2018_lsf.txt")
+year = 2018 
+tile = "X0015_Y0024"
+vi_extraction(root_path, vector_path, out_path, year, tile)
 
 root_path <- paste0(path, "/level3_lsf/X0016_Y0024")
-vector_path <- paste0(path, "/AVIRIS-NG/X0016_Y0024_aviris.gpkg")
-out_path <- paste0(path, "/level3_lsf-pixels/X0016_Y0024_AVIRIS_lsf.txt")
-vi_extraction(root_path, vector_path, out_path)
+vector_path <- paste0(path, "/OBSERVATIONS/2018_AVIRIS-NG/X0016_Y0024_aviris.gpkg")
+out_path <- paste0(path, "/level3_lsf-pixels/AVIRIS-NG_2018/X0016_Y0024_2018_lsf.txt")
+year = 2018 
+tile = "X0016_Y0024"
+vi_extraction(root_path, vector_path, out_path, year, tile)
 
 root_path <- paste0(path, "/level3_lsf/X0017_Y0024")
-vector_path <- paste0(path, "/AVIRIS-NG/X0017_Y0024_aviris.gpkg")
-out_path <- paste0(path, "/level3_lsf-pixels/X0017_Y0024_AVIRIS_lsf.txt")
-vi_extraction(root_path, vector_path, out_path)
+vector_path <- paste0(path, "/OBSERVATIONS/2018_AVIRIS-NG/X0017_Y0024_aviris.gpkg")
+out_path <- paste0(path, "/level3_lsf-pixels/AVIRIS-NG_2018/X0017_Y0024_2018_lsf.txt")
+year = 2018 
+tile = "X0017_Y0024"
+vi_extraction(root_path, vector_path, out_path, year, tile)
+
+#' AVIRIS-NG 2021
+root_path <- paste0(path, "/level3_lsf/X0016_Y0024")
+vector_path <- paste0(path, "/OBSERVATIONS/2021_AVIRIS-NG/X0016_Y0024_aviris.gpkg")
+out_path <- paste0(path, "/level3_lsf-pixels/AVIRIS-NG_2021/X0016_Y0024_2021_lsf.txt")
+year = 2021 
+tile = "X0016_Y0024"
+vi_extraction(root_path, vector_path, out_path, year, tile)
+
+#' NAIP 2019
+root_path <- paste0(path, "/level3_lsf/X0014_Y0024")
+vector_path <- paste0(path, "/OBSERVATIONS/2019_NAIP/X0014_Y0024/X0014_Y0024.gpkg")
+out_path <- paste0(path, "/level3_lsf-pixels/NAIP_2019/X0014_Y0024_2019_lsf.txt")
+year = 2019 
+tile = "X0014_Y0024"
+vi_extraction(root_path, vector_path, out_path, year, tile)
+
+root_path <- paste0(path, "/level3_lsf/X0015_Y0024")
+vector_path <- paste0(path, "/OBSERVATIONS/2019_NAIP/X0015_Y0024/X0015_Y0024.gpkg")
+out_path <- paste0(path, "/level3_lsf-pixels/NAIP_2019/X0015_Y0024_2019_lsf.txt")
+year = 2019 
+tile = "X0015_Y0024"
+vi_extraction(root_path, vector_path, out_path, year, tile)
+
+root_path <- paste0(path, "/level3_lsf/X0016_Y0024")
+vector_path <- paste0(path, "/OBSERVATIONS/2019_NAIP/X0016_Y0024/X0016_Y0024.gpkg")
+out_path <- paste0(path, "/level3_lsf-pixels/NAIP_2019/X0016_Y0024_2019_lsf.txt")
+year = 2019 
+tile = "X0016_Y0024"
+vi_extraction(root_path, vector_path, out_path, year, tile)
+
+root_path <- paste0(path, "/level3_lsf/X0016_Y0025")
+vector_path <- paste0(path, "/OBSERVATIONS/2019_NAIP/X0016_Y0025/X0016_Y0025.gpkg")
+out_path <- paste0(path, "/level3_lsf-pixels/NAIP_2019/X0016_Y0025_2019_lsf.txt")
+year = 2019 
+tile = "X0016_Y0025"
+vi_extraction(root_path, vector_path, out_path, year, tile)
+
+root_path <- paste0(path, "/level3_lsf/X0016_Y0027")
+vector_path <- paste0(path, "/OBSERVATIONS/2019_NAIP/X0016_Y0027/X0016_Y0027.gpkg")
+out_path <- paste0(path, "/level3_lsf-pixels/NAIP_2019/X0016_Y0027_2019_lsf.txt")
+year = 2019 
+tile = "X0016_Y0027"
+vi_extraction(root_path, vector_path, out_path, year, tile)
+
+root_path <- paste0(path, "/level3_lsf/X0017_Y0024")
+vector_path <- paste0(path, "/OBSERVATIONS/2019_NAIP/X0017_Y0024/X0017_Y0024.gpkg")
+out_path <- paste0(path, "/level3_lsf-pixels/NAIP_2019/X0017_Y0024_2019_lsf.txt")
+year = 2019 
+tile = "X0017_Y0024"
+vi_extraction(root_path, vector_path, out_path, year, tile)
+
+root_path <- paste0(path, "/level3_lsf/X0017_Y0026")
+vector_path <- paste0(path, "/OBSERVATIONS/2019_NAIP/X0017_Y0026/X0017_Y0026.gpkg")
+out_path <- paste0(path, "/level3_lsf-pixels/NAIP_2019/X0017_Y0026_2019_lsf.txt")
+year = 2019 
+tile = "X0017_Y0026"
+vi_extraction(root_path, vector_path, out_path, year, tile)
+
+root_path <- paste0(path, "/level3_lsf/X0017_Y0027")
+vector_path <- paste0(path, "/OBSERVATIONS/2019_NAIP/X0017_Y0027/X0017_Y0027.gpkg")
+out_path <- paste0(path, "/level3_lsf-pixels/NAIP_2019/X0017_Y0027_2019_lsf.txt")
+year = 2019 
+tile = "X0017_Y0027"
+vi_extraction(root_path, vector_path, out_path, year, tile)
