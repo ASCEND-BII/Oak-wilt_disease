@@ -14,110 +14,139 @@ library(ggplot2)
 
 #-------------------------------------------------------------------------------
 #Path
-path <- "F:/TRAINING/level3_lsf-pixels"
+path <- "/media/antonio/antonio_ssd/TRAINING/level3_lsf-pixels"
 
 #-------------------------------------------------------------------------------
-# NAIP 2019 observations
+# Compile observations
 
-#Reading
-X0014_Y0024 <- fread(paste0(path, "/NAIP/X0014_Y0024_lsf.txt"))
-X0015_Y0024 <- fread(paste0(path, "/NAIP/X0015_Y0024_lsf.txt"))
-X0016_Y0024 <- fread(paste0(path, "/NAIP/X0016_Y0024_lsf.txt"))
-X0016_Y0025 <- fread(paste0(path, "/NAIP/X0016_Y0025_lsf.txt"))
-X0016_Y0027 <- fread(paste0(path, "/NAIP/X0016_Y0027_lsf.txt"))
-X0017_Y0026 <- fread(paste0(path, "/NAIP/X0017_Y0026_lsf.txt"))
-X0017_Y0027 <- fread(paste0(path, "/NAIP/X0017_Y0027_lsf.txt"))
+files <- list.files(path = path, 
+                    pattern = ".txt", 
+                    all.files = TRUE,
+                    full.names = FALSE, 
+                    recursive = TRUE)
 
-#Add tile
-X0014_Y0024$tile <- "X0014_Y0024"
-X0015_Y0024$tile <- "X0015_Y0024"
-X0016_Y0024$tile <- "X0016_Y0024"
-X0016_Y0025$tile <- "X0016_Y0025"
-X0016_Y0027$tile <- "X0016_Y0027"
-X0017_Y0026$tile <- "X0017_Y0026"
-X0017_Y0027$tile <- "X0017_Y0027"
+#Arrange path in frame
+frame <- data.table(matrix(unlist(strsplit(files, "/")), 
+                           nrow= length(files), 
+                           byrow=TRUE), stringsAsFactors=FALSE)
+colnames(frame) <- c("folder", "file")
 
-#Rbind tiles
-NAIP_data <- rbind(X0014_Y0024, X0015_Y0024, X0016_Y0024, 
-              X0016_Y0025, X0016_Y0027, X0017_Y0026, 
-              X0017_Y0027)
+#Read in a loop
+data <- data.table()
 
-#Add reference sensor
-NAIP_data$sensor <- "NAIP"
+for(i in 1:nrow(frame)) {
+  
+  file <- fread(paste0(path, "/", frame$folder[i], "/", frame$file[i]))
+  file$sensor <- frame$folder[i]
+  data <- rbind(data, file)
 
-#Subset year
-NAIP_data <- subset(NAIP_data, year == "2019")
+}
 
-#Dcast
-NAIP_data <- dcast(NAIP_data, tile + sensor + ID + x + y + Condition + year + VI ~ metric)
+#Reshape frame
+data <- dcast(data, tile + sensor + ID + x + y + Condition + year ~ metric)
+data <- na.exclude(data)
 
-#-------------------------------------------------------------------------------
-# AVIRIS-NG 2018 observations
-
-#Reading
-X0014_Y0024 <- fread(paste0(path, "/AVIRIS/X0014_Y0024_AVIRIS_lsf.txt"))
-X0015_Y0024 <- fread(paste0(path, "/AVIRIS/X0015_Y0024_AVIRIS_lsf.txt"))
-X0016_Y0024 <- fread(paste0(path, "/AVIRIS/X0016_Y0024_AVIRIS_lsf.txt"))
-X0017_Y0024 <- fread(paste0(path, "/AVIRIS/X0017_Y0024_AVIRIS_lsf.txt"))
-
-#Add tile
-X0014_Y0024$tile <- "X0014_Y0024"
-X0015_Y0024$tile <- "X0015_Y0024"
-X0016_Y0024$tile <- "X0016_Y0024"
-X0017_Y0024$tile <- "X0017_Y0024"
-
-#Rbind tiles
-AVIRIS_data <- rbind(X0014_Y0024, X0015_Y0024, X0016_Y0024, X0017_Y0024)
-
-#Add reference sensor
-AVIRIS_data$sensor <- "AVIRIS-NG"
-
-#Subset year
-AVIRIS_data <- subset(AVIRIS_data, year == "2018")
-
-#Dcast
-AVIRIS_data <- dcast(AVIRIS_data, tile + sensor + ID + x + y + Condition + year + VI ~ metric)
+#Export
+fwrite(data, paste0(path, "/master_observations.csv"))
 
 #-------------------------------------------------------------------------------
 # Match observations for training
 #-------------------------------------------------------------------------------
+data <- fread(paste0(path, "/master_observations.csv"))
 
-#Test name of variables
-all.equal(colnames(AVIRIS_data), colnames(NAIP_data))
-
-#Rbind sensors
-data <- rbind(NAIP_data, AVIRIS_data)
-
-#Test for CCI
-data <- subset(data, VI == "CCI")
 data$Condition <- as.factor(data$Condition)
-data$Condition <- factor(data$Condition, levels = c("healthy", "wilted", "dead"))
+data$Condition <- factor(data$Condition, levels = c("Healthy", "Wilted", "Dead"))
 
-ggplot(data[VPA > 0], aes(Condition, VPA/VGM, fill = sensor, group = interaction(sensor, Condition))) + 
-  geom_jitter(size=0.4, alpha=0.9) +
-  geom_boxplot() +
-  ylab('density') +
+data$year <- as.factor(data$year)
+data$year <- factor(data$year, levels = c("2018", "2019", "2021"))
+
+ggplot(data, aes(year, VGM/VLV, fill = Condition)) + 
+  ggbeeswarm::geom_quasirandom(shape = 21, size=2, dodge.width = .75, color="black", alpha=.5, show.legend = F) +
+  scale_fill_viridis_d( option = "D")+
+  geom_violin(alpha=0.5, position = position_dodge(width = .75), size = 0.4, color=NA) +
+  geom_boxplot(outlier.size = -1, color="black", lwd= .4, alpha = 0.7,show.legend = F)+
   theme_minimal() +
-  theme(axis.title.x = element_blank())
+  theme(axis.title.x = element_blank()) +
+  guides(fill = guide_legend(override.aes = list(alpha = 1,color="black"))) +
+  scale_y_continuous(limits = c(-10, 10))
 
-ggplot(data[VPA > 0], aes(Condition, VGV, fill = sensor, group = interaction(sensor, Condition))) + 
+
+
+
+
+ggplot(data, aes(Condition, VPS, fill = year)) + 
+  ggbeeswarm::geom_quasirandom(shape = 21, size=2, dodge.width = .75, color="black", alpha=.5, show.legend = F) +
+  scale_fill_viridis_d( option = "D")+
+  geom_violin(alpha=0.5, position = position_dodge(width = .75), size = 0.4, color=NA) +
+  geom_boxplot(outlier.size = -1, color="black", lwd= .4, alpha = 0.7,show.legend = F)+
+  theme_minimal() +
+  theme(axis.title.x = element_blank()) +
+  guides(fill = guide_legend(override.aes = list(alpha = 1,color="black")))
+
+ggplot(data, aes(Condition, VLV, fill = year)) + 
+  ggbeeswarm::geom_quasirandom(shape = 21, size=2, dodge.width = .75, color="black", alpha=.5, show.legend = F) +
+  scale_fill_viridis_d( option = "D")+
+  geom_violin(alpha=0.5, position = position_dodge(width = .75), size = 0.4, color=NA) +
+  geom_boxplot(outlier.size = -1, color="black", lwd= .4, alpha = 0.7,show.legend = F)+
+  theme_minimal() +
+  theme(axis.title.x = element_blank()) +
+  guides(fill = guide_legend(override.aes = list(alpha = 1,color="black")))
+
+ggplot(data, aes(Condition, VMS, fill = year)) + 
+  ggbeeswarm::geom_quasirandom(shape = 21, size=2, dodge.width = .75, color="black", alpha=.5, show.legend = F) +
+  scale_fill_viridis_d( option = "D")+
+  geom_violin(alpha=0.5, position = position_dodge(width = .75), size = 0.4, color=NA) +
+  geom_boxplot(outlier.size = -1, color="black", lwd= .4, alpha = 0.7,show.legend = F)+
+  theme_minimal() +
+  theme(axis.title.x = element_blank()) +
+  guides(fill = guide_legend(override.aes = list(alpha = 1,color="black"))) 
+  scale_y_continuous(limits = c(-10, 10))
+
+ggplot(data, aes(Condition, IFR, fill = year)) + 
+  ggbeeswarm::geom_quasirandom(shape = 21, size=2, dodge.width = .75, color="black", alpha=.5, show.legend = F) +
+  scale_fill_viridis_d( option = "D")+
+  geom_violin(alpha=0.5, position = position_dodge(width = .75), size = 0.4, color=NA) +
+  geom_boxplot(outlier.size = -1, color="black", lwd= .4, alpha = 0.7,show.legend = F)+
+  theme_minimal() +
+  theme(axis.title.x = element_blank()) +
+  guides(fill = guide_legend(override.aes = list(alpha = 1,color="black")))
+  scale_y_continuous(limits = c(-10, 10))
+
+
+
+ggplot(data, aes(Condition, VPS, fill = sensor)) + 
+  ggbeeswarm::geom_quasirandom(shape = 21, size=2, dodge.width = .75, color="black", alpha=.5, show.legend = F) +
+  scale_fill_viridis_d( option = "D")+
+  geom_violin(alpha=0.5, position = position_dodge(width = .75), size = 0.4, color=NA) +
+  geom_boxplot(outlier.size = -1, color="black", lwd= .4, alpha = 0.7,show.legend = F)+
+  theme_minimal() +
+  theme(axis.title.x = element_blank()) +
+  guides(fill = guide_legend(override.aes = list(alpha = 1,color="black")))
+
+ggplot(data, aes(Condition, VSS, fill = sensor)) + 
+  ggbeeswarm::geom_quasirandom(shape = 21, size=2, dodge.width = .75, color="black", alpha=.5, show.legend = F) +
+  scale_fill_viridis_d( option = "D")+
+  geom_violin(alpha=0.5, position = position_dodge(width = .75), size = 0.4, color=NA) +
+  geom_boxplot(outlier.size = -1, color="black", lwd= .4, alpha = 0.7,show.legend = F)+
+  theme_minimal() +
+  theme(axis.title.x = element_blank()) +
+  guides(fill = guide_legend(override.aes = list(alpha = 1,color="black")))
+
+
+ggplot(data, aes(Condition, VGM, fill = sensor, group = interaction(sensor, Condition))) + 
   geom_jitter(size=0.4, alpha=0.9) +
   geom_boxplot() +
   ylab('LSF') +
   theme_minimal() +
   theme(axis.title.x = element_blank())
 
-ggplot(data[VPA > 0], aes(Condition, (IBT-IST)/IBT, fill = sensor, group = interaction(sensor, Condition))) + 
+ggplot(data, aes(Condition, VAV, fill = sensor, group = interaction(sensor, Condition))) + 
   geom_jitter(size=0.4, alpha=0.9) +
   geom_boxplot() +
   ylab('LSF') +
   theme_minimal() +
   theme(axis.title.x = element_blank())
 
-ggplot(data[VPA > 0], aes(Condition, VPS, fill = sensor, group = interaction(sensor, Condition))) + 
-  geom_jitter(size=0.4, alpha=0.9) +
-  geom_boxplot() +
-  ylab('LSF') +
-  theme_minimal() +
-  theme(axis.title.x = element_blank())
 
+col1 <- colorRampPalette(brewer.pal(9,"BrBG"))
+corrplot(corrmatrix,method = "square", order = "FPC", tl.col = "black", tl.cex = 0.75, p.mat = res1[[1]], sig.level = 0.05, insig = "pch", pch.cex = 1, col = col1(100))
