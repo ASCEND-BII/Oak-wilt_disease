@@ -15,6 +15,7 @@ library(blockCV)
 #-------------------------------------------------------------------------------
 # Root path
 
+path <- "F:/TRAINING/level3_lsf-pixels"
 path <- "/media/antonio/antonio_ssd/TRAINING/level3_lsf-pixels"
 
 #-------------------------------------------------------------------------------

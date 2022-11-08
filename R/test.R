@@ -21,13 +21,14 @@ library(terra)
 
 path <- "/media/antonio/antonio_ssd/TRAINING"
 
+path <- "F:/TRAINING"
 root_path <- paste0(path, "/level3_lsf/X0014_Y0024")
 vector_path <- paste0(path, "/OBSERVATIONS/2018_AVIRIS-NG/X0014_Y0024_aviris.gpkg")
 out_path <- paste0(path, "/level3_lsf-pixels/X0014_Y0024_AVIRIS_lsf.txt")
 year = 2018 
 tile = "X0014_Y0024"
 
-vi_extraction(root_path, vector_path, out_path)
+vi_extraction(root_path, vector_path, out_path, year, tile)
 
 #-------------------------------------------------------------------------------
 #Arguments
@@ -52,19 +53,21 @@ vi_extraction <- function(root_path, vector_path, out_path, year, tile) {
   
   #Get VI
   frame[, VI := strsplit(scene, "_")[[1]][6], by = seq_along(1:nrow(frame))]
-  frame <- subset(frame, VI == "KNV")
   
   #Get method
   frame[, metric := substr(strsplit(scene, "_")[[1]][7], 1, 3), by = seq_along(1:nrow(frame))]
   
+  #VPS kNDVI and CCI
+  kNDVI_frame <- subset(frame, VI == "KNV" & metric == "VPS")
+  
   #Get normalized
-  mask_VPS <- subset(frame, metric == "VGM")
-  mask_VPS <- rast(paste0(root_path, "/", mask_VPS$scene[1]))
+  mask_VPS <- rast(paste0(root_path, "/", kNDVI_frame$scene[1]))
   mask_VPS <- subset(mask_VPS, paste0("YEAR-", year))
   mask_VPS[mask_VPS < 4500] <- 0
   mask_VPS[mask_VPS >= 4500] <- 1
   
   #Order 
+  frame <- subset(frame, VI == "CCI")
   frame <- frame[order(VI, metric)]
   
   #N scenes
