@@ -51,17 +51,10 @@ vi_extraction <- function(root_path, vector_path, out_path, year, tile) {
   
   #Get VI
   frame[, VI := strsplit(scene, "_")[[1]][6], by = seq_along(1:nrow(frame))]
-  frame <- subset(frame, VI == "KNV")
+  frame <- subset(frame, VI == "KNV" | VI == "CCI")
   
   #Get method
   frame[, metric := substr(strsplit(scene, "_")[[1]][7], 1, 3), by = seq_along(1:nrow(frame))]
-  
-  #Get normalized
-  VPS <- subset(frame, metric == "VGM")
-  VPS <- rast(paste0(root_path, "/", VPS$scene[1]))
-  VPS <- subset(VPS, paste0("YEAR-", year))
-  VPS[VPS <= 4500] <- NA
-  quantile <- quantile(VPS[], 0.5, na.rm = TRUE)
   
   #Order 
   frame <- frame[order(VI, metric)]
@@ -76,7 +69,8 @@ vi_extraction <- function(root_path, vector_path, out_path, year, tile) {
     
     #Read
     VI <- rast(paste0(root_path, "/", frame$scene[i]))
-    VI <- subset(VI, paste0("YEAR-", year))
+    years <- c(paste0("YEAR-", year), paste0("YEAR-", (year-1)))
+    VI <- subset(VI, years)
     
     #Extract values
     values <- extract(VI, 
@@ -91,6 +85,7 @@ vi_extraction <- function(root_path, vector_path, out_path, year, tile) {
     
     values_melted$VI <- frame$VI[i]
     values_melted$metric <- frame$metric[i]
+    values_melted$YOI <- year
     
     #Remove residuals
     rm(list = c("VI", "values"))
@@ -102,7 +97,7 @@ vi_extraction <- function(root_path, vector_path, out_path, year, tile) {
   }
   
   #Change names
-  colnames(extraction) <- c("ID", "x", "y", "year", "value", "VI", "metric")
+  colnames(extraction) <- c("ID", "x", "y", "observation", "value", "VI", "metric", "YOI")
   
   #Prepare vector to merge
   area <- expanse(vector)
@@ -110,7 +105,6 @@ vi_extraction <- function(root_path, vector_path, out_path, year, tile) {
   vector$ID <- 1:nrow(vector)
   vector <- as.data.table(vector)
   vector$tile <- tile
-  vector$quantile <- quantile
   #vector$area <- area
   
   #Merge
@@ -122,11 +116,10 @@ vi_extraction <- function(root_path, vector_path, out_path, year, tile) {
   complete[condition == "3", Condition := "Dead"]
   
   #Order complete
-  complete <- complete[, c(3, 1, 11, 5:6, 7, 4, 10, 8)]
-  #complete <- complete[, c(4, 1, 12, 6:7, 8, 5, 11, 9)]
+  complete <- complete[, c("tile", "ID", "Condition", "x", "y", "YOI", "observation", "VI", "metric", "value")]
   
   #Modify year
-  complete$year <- as.numeric(substr(complete$year, 6, 9))
+  complete$observation <- as.numeric(substr(complete$observation, 6, 9))
   
   #Export
   fwrite(complete, out_path, sep = "\t")

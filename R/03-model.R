@@ -145,6 +145,40 @@ svmLinear <- model_training(data_model,
                             tune = svmLinear_tune,
                             threads = 8)
 
+#Run bayesglm
+svmLinear_tune <- expand.grid(C = seq(0.1, 2, by = 0.1))
+xgbTree <- model_training(data_model, 
+                            model = "xgbTree", 
+                            tune = NULL,
+                            threads = 8)
+
+
+#Run bayesglm
+svmLinear_tune <- expand.grid(C = seq(0.1, 2, by = 0.1))
+NB <- model_training(data_model, 
+                          model = "nb", 
+                          tune = NULL,
+                          threads = 8)
+
+svmLinear_tune <- expand.grid(C = seq(0.1, 2, by = 0.1))
+gaussprRadial <- model_training(data_model, 
+                                model = "gaussprRadial", 
+                                tune = NULL,
+                                threads = 8)
+
+svmLinear_tune <- expand.grid(C = seq(0.1, 2, by = 0.1))
+
+gaussprLinear <- model_training(data_model, 
+                                model = "gaussprLinear", 
+                                tune = NULL,
+                                threads = 8)
+
+svmLinear_tune <- expand.grid(C = seq(0.1, 2, by = 0.1))
+plsRglm <- model_training(data_model, 
+                          model = "plsRglm", 
+                          tune = NULL,
+                          threads = 8)
+
 #Run knn
 knn_tune <- expand.grid(k = c(1:30))
 knn <- model_training(data_model, 

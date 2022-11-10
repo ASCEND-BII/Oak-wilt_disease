@@ -1,6 +1,7 @@
 library(data.table)
 library(ggplot2)
 library(ggpubr)
+library(plotrix)
 
 tamano <- 14
 tamano2 <- 12
@@ -31,45 +32,11 @@ ggplot(data) +
                limits = as.Date(c('2018-01-01','2022-01-01'))) +
   th + ylab("CCI") + xlab("Year")
 
-library(plotrix)
 
 
-radial.plot(v,r,clockwise=TRUE,start=s.pos,
-            label.pos=lab.pos,labels=rad.labs,radial.labels=ndvilabs,
-            rp.type='s',point.symbols=20,point.col=clrs,radial.lim=c(0,1),
-            show.radial.grid=FALSE,main='(b) NDVI Polar Plot',
-            grid.col='black',grid.unit='NDVI')
-            
-
-testlen<-runif(10,0,10)
-testpos<-seq(0,18*pi/10,length=10)
-testlab<-letters[1:10]
-oldpar<-radial.plot(testlen,testpos,main="Test Radial Lines",line.col="red",
-                    lwd=3,rad.col="lightblue")
 
 
-dpy <- 365                 # Days/year
-c <- 12                    # Num. of years/cycles
-data(mndvi)                # Load data
-t <- as.vector(mndvi$day)  # Days since January 1, 2000
-r <- t2rad(t, dpc=dpy)     # Transform days of year to radians
-v <- as.vector(mndvi$wc)   # MODIS NDVI for Willow Creek flux tower, WI
-vx <- mean(vec.x(r,v), na.rm=TRUE) # Avg horizontal vector
-vy <- mean(vec.y(r,v), na.rm=TRUE) # Avg vertical vector
-rv <- vec_mag(vx,vy)       # Magnitude (length) of average vector
-rv_ang <- vec_ang(vx,vy)   # Angle of the avg vector (phenological median)
-avec_ang <- avec_ang(rv_ang)   # Vert opposite of med (avg NDVI min/pheno yr start)
-par(mfrow=c(1,2))          # Make this a multi-pane plot
-cxs <- 1                   # Text scaling in plots
-# Time series plot of Willow Creek
-plot(2000+(t/dpy), v, pch=20, col='black', xlab='Years',
-     ylab='NDVI', main='(a) NDVI Time Series',
-     ylim=c(0.35,0.95), cex=cxs, cex.axis=cxs, cex.lab=cxs, cex.main=cxs*1.25)
-# Polar plot phenology variables
-ndvilabs <- c('','.2','.4','.6','.8','') # labels for radial plot
-s.pos <- pi/2 # Radial position to start plotting from
-lab.pos <- c(seq(from=0, to=2*pi-(2*pi/12), by=(2*pi)/12))[-4]
-rad.labs <- c(month.abb[seq(from=1, to=12)])[-4]
+
 clrs <- colorRampPalette(c('blue3', 'gold'))(length(r)) # Color ramp for plot
 # Polar plot of Willow Creek
 
@@ -87,6 +54,9 @@ polar[year(TSI_date) > 2019, color := "#7570b3"]
 polar[year(TSI_date) == 2019, color := "#d95f02"]
 polar[year(TSI_date) < 2019, color := "#1b9e77"]
 
+lab.pos <- c(seq(from=0, to=2*pi-(2*pi/12), by=(2*pi)/12))[-4]
+s.pos <- pi/2 # Radial position to start plotting from
+rad.labs <- c(month.abb[seq(from=1, to=12)])[-4]
 
 radial.plot(polar$TSI/10000, polar$r,
             clockwise = TRUE,
