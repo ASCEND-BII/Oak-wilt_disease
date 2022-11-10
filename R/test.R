@@ -27,7 +27,7 @@ out_path <- paste0(path, "/level3_lsf-pixels/X0014_Y0024_AVIRIS_lsf.txt")
 year = 2018 
 tile = "X0014_Y0024"
 
-vi_extraction(root_path, vector_path, out_path)
+vi_extraction(root_path, vector_path, out_path, year, tile)
 
 #-------------------------------------------------------------------------------
 #Arguments
@@ -50,19 +50,18 @@ vi_extraction <- function(root_path, vector_path, out_path, year, tile) {
                              byrow=TRUE), stringsAsFactors=FALSE)
   colnames(frame) <- c("scene")
   
-  #Get VI
+  #Get VI and metric
   frame[, VI := strsplit(scene, "_")[[1]][6], by = seq_along(1:nrow(frame))]
-  frame <- subset(frame, VI == "KNV")
-  
-  #Get method
   frame[, metric := substr(strsplit(scene, "_")[[1]][7], 1, 3), by = seq_along(1:nrow(frame))]
   
   #Get normalized
-  mask_VPS <- subset(frame, metric == "VGM")
-  mask_VPS <- rast(paste0(root_path, "/", mask_VPS$scene[1]))
+  mask_VPS <- rast(paste0(root_path, "/", frame[VI == "KNV" & metric == "VGM"]$scene[1]))
   mask_VPS <- subset(mask_VPS, paste0("YEAR-", year))
-  mask_VPS[mask_VPS < 4500] <- 0
-  mask_VPS[mask_VPS >= 4500] <- 1
+  mask_VPS[mask_VPS < 4000] <- 0
+  mask_VPS[mask_VPS >= 4000] <- 1
+  
+  #Get method
+  frame <- subset(frame, VI == "CCI")
   
   #Order 
   frame <- frame[order(VI, metric)]

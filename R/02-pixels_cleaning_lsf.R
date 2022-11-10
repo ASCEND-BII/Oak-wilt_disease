@@ -43,8 +43,17 @@ for(i in 1:nrow(frame)) {
 }
 
 #Reshape frame
-data <- dcast(data, tile + sensor + ID + x + y + Condition + year ~ metric)
+data <- dcast(data, tile + sensor + ID + x + y + YOI + Condition + observation + VI ~ metric)
+data[, sensor := strsplit(sensor, "_")[[1]][1], by = seq_along(1:nrow(data))]
 data <- na.exclude(data)
+
+#Add unique ID of sample
+remove <- na.exclude(data)
+unique_IDs <- remove[, .N, by= c("tile", "ID", "Condition", "sensor")]
+unique_IDs$N <- 1:nrow(unique_IDs)
+data <- merge(unique_IDs, data, by = c("tile", "ID", "Condition", "sensor"), 
+              all.x = TRUE, all.y = FALSE)
+data <- data[order(N, VI)]
 
 #Export
 fwrite(data, paste0(path, "/master_observations.csv"))
@@ -57,10 +66,28 @@ data <- fread(paste0(path, "/master_observations.csv"))
 data$Condition <- as.factor(data$Condition)
 data$Condition <- factor(data$Condition, levels = c("Healthy", "Wilted", "Dead"))
 
-data$year <- as.factor(data$year)
-data$year <- factor(data$year, levels = c("2018", "2019", "2021"))
+data$YOI <- as.factor(data$YOI)
+data$YOI <- factor(data$YOI, levels = c("2018", "2019", "2021"))
 
-ggplot(data, aes(year, VGM/VLV, fill = Condition)) + 
+data$current <- data$YOI == data$observation
+data <- subset(data, current == TRUE)
+data <- subset(data, VI == "CCI")
+
+#Remove 0 values
+data[VPS == 0, VPS := NA]
+data[VGM == 0, VGM := NA]
+data[VGV == 0, VGV := NA]
+data[VSS == 0, VSS := NA]
+data[IFR == 0, IFR := NA]
+data <- na.exclude(data)
+
+#New variables
+data$PPM <- (data$VPS-data$VGM)/data$VGM
+data$VCV <- data$VGV/data$VGM
+
+#-------------------------------------------------------------------------------
+
+ggplot(data, aes(Condition, (VPS-VGM)/VGM, fill = YOI)) + 
   ggbeeswarm::geom_quasirandom(shape = 21, size=2, dodge.width = .75, color="black", alpha=.5, show.legend = F) +
   scale_fill_viridis_d( option = "D")+
   geom_violin(alpha=0.5, position = position_dodge(width = .75), size = 0.4, color=NA) +
@@ -68,31 +95,28 @@ ggplot(data, aes(year, VGM/VLV, fill = Condition)) +
   theme_minimal() +
   theme(axis.title.x = element_blank()) +
   guides(fill = guide_legend(override.aes = list(alpha = 1,color="black"))) +
-  scale_y_continuous(limits = c(-10, 10))
+  coord_cartesian(ylim = c(0, 0.85))
 
+ggplot(data, aes(Condition, VGM, fill = YOI)) + 
+  ggbeeswarm::geom_quasirandom(shape = 21, size=2, dodge.width = .75, color="black", alpha=.5, show.legend = F) +
+  scale_fill_viridis_d( option = "D") +
+  geom_violin(alpha=0.5, position = position_dodge(width = .75), size = 0.4, color=NA) +
+  geom_boxplot(outlier.size = -1, color="black", lwd= .4, alpha = 0.7,show.legend = F)+
+  theme_minimal() +
+  theme(axis.title.x = element_blank()) +
+  guides(fill = guide_legend(override.aes = list(alpha = 1,color="black"))) 
 
-
-
-
-ggplot(data, aes(Condition, VPS, fill = year)) + 
+ggplot(data, aes(Condition, VGV/VGM, fill = YOI)) + 
   ggbeeswarm::geom_quasirandom(shape = 21, size=2, dodge.width = .75, color="black", alpha=.5, show.legend = F) +
   scale_fill_viridis_d( option = "D")+
   geom_violin(alpha=0.5, position = position_dodge(width = .75), size = 0.4, color=NA) +
   geom_boxplot(outlier.size = -1, color="black", lwd= .4, alpha = 0.7,show.legend = F)+
   theme_minimal() +
   theme(axis.title.x = element_blank()) +
-  guides(fill = guide_legend(override.aes = list(alpha = 1,color="black")))
+  guides(fill = guide_legend(override.aes = list(alpha = 1,color="black"))) +
+  coord_cartesian(ylim = c(0, 0.75))
 
-ggplot(data, aes(Condition, VLV, fill = year)) + 
-  ggbeeswarm::geom_quasirandom(shape = 21, size=2, dodge.width = .75, color="black", alpha=.5, show.legend = F) +
-  scale_fill_viridis_d( option = "D")+
-  geom_violin(alpha=0.5, position = position_dodge(width = .75), size = 0.4, color=NA) +
-  geom_boxplot(outlier.size = -1, color="black", lwd= .4, alpha = 0.7,show.legend = F)+
-  theme_minimal() +
-  theme(axis.title.x = element_blank()) +
-  guides(fill = guide_legend(override.aes = list(alpha = 1,color="black")))
-
-ggplot(data, aes(Condition, VMS, fill = year)) + 
+ggplot(data, aes(Condition, VSS, fill = YOI)) + 
   ggbeeswarm::geom_quasirandom(shape = 21, size=2, dodge.width = .75, color="black", alpha=.5, show.legend = F) +
   scale_fill_viridis_d( option = "D")+
   geom_violin(alpha=0.5, position = position_dodge(width = .75), size = 0.4, color=NA) +
@@ -100,53 +124,16 @@ ggplot(data, aes(Condition, VMS, fill = year)) +
   theme_minimal() +
   theme(axis.title.x = element_blank()) +
   guides(fill = guide_legend(override.aes = list(alpha = 1,color="black"))) 
-  scale_y_continuous(limits = c(-10, 10))
 
-ggplot(data, aes(Condition, IFR, fill = year)) + 
+ggplot(data, aes(Condition, IFR, fill = YOI)) + 
   ggbeeswarm::geom_quasirandom(shape = 21, size=2, dodge.width = .75, color="black", alpha=.5, show.legend = F) +
   scale_fill_viridis_d( option = "D")+
   geom_violin(alpha=0.5, position = position_dodge(width = .75), size = 0.4, color=NA) +
   geom_boxplot(outlier.size = -1, color="black", lwd= .4, alpha = 0.7,show.legend = F)+
   theme_minimal() +
   theme(axis.title.x = element_blank()) +
-  guides(fill = guide_legend(override.aes = list(alpha = 1,color="black")))
-  scale_y_continuous(limits = c(-10, 10))
+  guides(fill = guide_legend(override.aes = list(alpha = 1,color="black"))) 
 
-
-
-ggplot(data, aes(Condition, VPS, fill = sensor)) + 
-  ggbeeswarm::geom_quasirandom(shape = 21, size=2, dodge.width = .75, color="black", alpha=.5, show.legend = F) +
-  scale_fill_viridis_d( option = "D")+
-  geom_violin(alpha=0.5, position = position_dodge(width = .75), size = 0.4, color=NA) +
-  geom_boxplot(outlier.size = -1, color="black", lwd= .4, alpha = 0.7,show.legend = F)+
-  theme_minimal() +
-  theme(axis.title.x = element_blank()) +
-  guides(fill = guide_legend(override.aes = list(alpha = 1,color="black")))
-
-ggplot(data, aes(Condition, VSS, fill = sensor)) + 
-  ggbeeswarm::geom_quasirandom(shape = 21, size=2, dodge.width = .75, color="black", alpha=.5, show.legend = F) +
-  scale_fill_viridis_d( option = "D")+
-  geom_violin(alpha=0.5, position = position_dodge(width = .75), size = 0.4, color=NA) +
-  geom_boxplot(outlier.size = -1, color="black", lwd= .4, alpha = 0.7,show.legend = F)+
-  theme_minimal() +
-  theme(axis.title.x = element_blank()) +
-  guides(fill = guide_legend(override.aes = list(alpha = 1,color="black")))
-
-
-ggplot(data, aes(Condition, VGM, fill = sensor, group = interaction(sensor, Condition))) + 
-  geom_jitter(size=0.4, alpha=0.9) +
-  geom_boxplot() +
-  ylab('LSF') +
-  theme_minimal() +
-  theme(axis.title.x = element_blank())
-
-ggplot(data, aes(Condition, VAV, fill = sensor, group = interaction(sensor, Condition))) + 
-  geom_jitter(size=0.4, alpha=0.9) +
-  geom_boxplot() +
-  ylab('LSF') +
-  theme_minimal() +
-  theme(axis.title.x = element_blank())
-
-
-col1 <- colorRampPalette(brewer.pal(9,"BrBG"))
-corrplot(corrmatrix,method = "square", order = "FPC", tl.col = "black", tl.cex = 0.75, p.mat = res1[[1]], sig.level = 0.05, insig = "pch", pch.cex = 1, col = col1(100))
+data <- data[, c("tile", "ID", "Condition", "sensor", "N", "x", "y", "YOI", "PPM", "VGM", "VCV", "VSS", "IFR")]
+colnames(data)[8] <- "year"
+fwrite(data, paste0(path, "/master_training.csv"))

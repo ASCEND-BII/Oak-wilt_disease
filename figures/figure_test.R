@@ -1,14 +1,18 @@
 #VSS
 library(Rmisc)
-library(ggplo2)
+library(ggplot2)
 library(data.table)
 library(ggpubr)
 library(PupillometryR)
 
 
-data <- fread(paste0(path, "/master_observations.csv"))
+data <- fread(paste0(path, "/master_training.csv"))
 
+data$Condition <- as.factor(data$Condition)
+data$Condition <- factor(data$Condition, levels = c("Healthy", "Wilted", "Dead"))
 
+data$year <- as.factor(data$year)
+data$year <- factor(data$year, levels = c("2018", "2019", "2021"))
 
 #Layout properties -------------------------------------------------------------
 #pa <- c("#1b9e77", "#d95f02", "#7570b3")
@@ -29,7 +33,7 @@ th <- theme_bw(base_size = tamano) + theme(plot.background = element_blank(),
 #Plot --------------------------------------------------------------------------
 
 col <- colnames(data)
-col <- col[8:length(col)]
+col <- col[9:length(col)]
 n_col <- length(col)
 
 for(i in 1:n_col) {
@@ -54,16 +58,19 @@ for(i in 1:n_col) {
   summary_condition[, 2:8] <- round(summary_condition[, 2:8], 4)
   
   A <- ggplot() +
-    geom_hline(yintercept = 0, linetype= "longdash", colour = "grey75") +
+    #geom_hline(yintercept = 0, linetype= "longdash", colour = "grey75") +
     # geom_errorbar(data= frame, aes(x = year, ymax= value, ymin= value), colour = "grey20", linetype = 2)  
-    geom_flat_violin(data = frame, aes(x = condition, y = value, fill = year), position = position_nudge(x = .05, y = 0), adjust = 1.5, trim = FALSE, alpha = .35, colour = "white") +
+    geom_flat_violin(data = frame, aes(x = condition, y = value, fill = year), position = position_nudge(x = .08, y = 0), adjust = 1.5, trim = FALSE, alpha = .35, colour = "white") +
     geom_point(data = frame, aes(x = as.numeric(condition)-.15, y = value, colour = year, shape = condition), position = position_jitter(width = .05), size = .25, shape = 20) +
     geom_boxplot(data = frame, aes(x = condition, y = value, fill = year), outlier.shape = NA, alpha = .5, width = .1, colour = "black") +
     geom_line(data = summary_gruops, aes(x = as.numeric(condition)+.1, y = value, group = year, colour = year), linetype = 3) +
     geom_point(data = summary_gruops, aes(x = as.numeric(condition)+.1, y = value, group = year, colour = year), shape = 18) +
     scale_colour_manual(values = pa) +
     scale_fill_manual(values = pa) +
-    th + xlab("Condition") + ylab(val_name) + coord_flip(ylim=c(-3, 3)) 
+    th + xlab("Condition") + ylab(val_name) + coord_cartesian(ylim = c(0, 0.70), xlim = c(0.8, 3.5), expand = FALSE)
+  
+  
+   
   
   name <- paste0("/media/antonio/antonio_ssd/TRAINING/figures/", col[i], ".jpeg")
   
@@ -140,3 +147,4 @@ KNV <- ggbetweenstats(
   xlab = "Condition",
   ylab = col[i],
   title = "KNV")
+
