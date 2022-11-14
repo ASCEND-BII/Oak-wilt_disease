@@ -129,7 +129,7 @@ rf_tune <- expand.grid(mtry = c(1:10))
 rf <- model_training(data_model, 
                      model = "rf", 
                      tune = rf_tune,
-                     threads = 8)
+                     threads = 25)
 
 #Run PLSD
 pls_tune <- expand.grid(ncomp = c(1:4))
@@ -143,48 +143,20 @@ svmLinear_tune <- expand.grid(C = seq(0.1, 2, by = 0.1))
 svmLinear <- model_training(data_model, 
                             model = "svmLinear", 
                             tune = svmLinear_tune,
-                            threads = 8)
+                            threads = 16)
 
-#Run bayesglm
-svmLinear_tune <- expand.grid(C = seq(0.1, 2, by = 0.1))
-xgbTree <- model_training(data_model, 
-                            model = "xgbTree", 
-                            tune = NULL,
-                            threads = 8)
-
-
-#Run bayesglm
-svmLinear_tune <- expand.grid(C = seq(0.1, 2, by = 0.1))
+#Run Naive bayes
 NB <- model_training(data_model, 
-                          model = "nb", 
-                          tune = NULL,
-                          threads = 8)
-
-svmLinear_tune <- expand.grid(C = seq(0.1, 2, by = 0.1))
-gaussprRadial <- model_training(data_model, 
-                                model = "gaussprRadial", 
-                                tune = NULL,
-                                threads = 8)
-
-svmLinear_tune <- expand.grid(C = seq(0.1, 2, by = 0.1))
-
-gaussprLinear <- model_training(data_model, 
-                                model = "gaussprLinear", 
-                                tune = NULL,
-                                threads = 8)
-
-svmLinear_tune <- expand.grid(C = seq(0.1, 2, by = 0.1))
-plsRglm <- model_training(data_model, 
-                          model = "plsRglm", 
-                          tune = NULL,
-                          threads = 8)
+                     model = "nb", 
+                     tune = NULL,
+                     threads = 16)
 
 #Run knn
 knn_tune <- expand.grid(k = c(1:30))
 knn <- model_training(data_model, 
                       model = "knn", 
                       tune = knn_tune,
-                      threads = 8)
+                      threads = 25)
 
 #Run nnet
 nnet_tune <- expand.grid(size = seq(from = 1, to = 10, by = 1),
@@ -192,13 +164,14 @@ nnet_tune <- expand.grid(size = seq(from = 1, to = 10, by = 1),
 nnet <- model_training(data_model, 
                        model = "nnet", 
                        tune = nnet_tune,
-                       threads = 8)
+                       threads = 25)
 
 #Create a list of models
 models <- list(LDA = lda, 
                RF = rf, 
                PLSD = pls, 
                SVM = svmLinear, 
+               NB = NB,
                KNN = knn, 
                NNET = nnet)
 
@@ -303,3 +276,6 @@ byClass <- rbind(training_2019$byClass,
                  testing_2019$byClass,
                  testing_2018$byClass,
                  testing_2021$byClass)
+
+fwrite(overal, "data/models/overal.csv")
+fwrite(byClass, "data/models/byClass.csv")

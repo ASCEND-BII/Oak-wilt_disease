@@ -83,7 +83,7 @@ data[IFR == 0, IFR := NA]
 data <- na.exclude(data)
 
 #New variables
-data$PPM <- (data$VPS-data$VGM)/data$VGM
+data$PPM <- (data$VPS/data$VGM)/data$VGM
 data$VCV <- data$VGV/data$VGM
 
 #-------------------------------------------------------------------------------
