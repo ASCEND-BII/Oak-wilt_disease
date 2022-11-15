@@ -70,10 +70,10 @@ VSS_summary_condition[, 2:8] <- round(VSS_summary_condition[, 2:8], 4)
 
 VSS <- ggplot() +
     geom_flat_violin(data = VSS_frame, aes(x = Condition, y = value, fill = Year), position = position_nudge(x = .08, y = 0), adjust = 1.5, trim = FALSE, alpha = .25, colour = "white") +
-    geom_point(data = VSS_frame, aes(x = as.numeric(Condition)-.15, y = value, colour = Year, shape = Condition), position = position_jitter(width = .05), size = .25, shape = 20) +
+    geom_point(data = VSS_frame, aes(x = as.numeric(Condition)-.15, y = value, colour = Year), position = position_jitter(width = .05), size = 0.1, shape = 20) +
     geom_boxplot(data = VSS_frame, aes(x = Condition, y = value, fill = Year), outlier.shape = NA, alpha = .5, width = .1, colour = "black") +
     geom_line(data = VSS_summary_gruops, aes(x = as.numeric(Condition)+.1, y = value, group = Year, colour = Year), linetype = 3) +
-    geom_point(data = VSS_summary_gruops, aes(x = as.numeric(Condition)+.1, y = value, group = Year, colour = Year), shape = 18) +
+    geom_point(data = VSS_summary_gruops, aes(x = as.numeric(Condition)+.1, y = value, group = Year, fill = Year), color = "white", shape = 21,  size = 1.5) +
     scale_colour_manual(values = pa) +
     scale_fill_manual(values = pa) +
     th + xlab("") + ylab("VSS") + 
@@ -104,10 +104,10 @@ PPM_summary_condition[, 2:8] <- round(PPM_summary_condition[, 2:8], 4)
 
 PPM <- ggplot() +
   geom_flat_violin(data = PPM_frame, aes(x = Condition, y = value, fill = Year), position = position_nudge(x = .08, y = 0), adjust = 1.5, trim = FALSE, alpha = .25, colour = "white") +
-  geom_point(data = PPM_frame, aes(x = as.numeric(Condition)-.15, y = value, colour = Year, shape = Condition), position = position_jitter(width = .05), size = .25, shape = 20) +
+  geom_point(data = PPM_frame, aes(x = as.numeric(Condition)-.15, y = value, colour = Year), position = position_jitter(width = .05), size = 0.1, shape = 20) +
   geom_boxplot(data = PPM_frame, aes(x = Condition, y = value, fill = Year), outlier.shape = NA, alpha = .5, width = .1, colour = "black") +
   geom_line(data = PPM_summary_gruops, aes(x = as.numeric(Condition)+.1, y = value, group = Year, colour = Year), linetype = 3) +
-  geom_point(data = PPM_summary_gruops, aes(x = as.numeric(Condition)+.1, y = value, group = Year, colour = Year), shape = 18) +
+  geom_point(data = PPM_summary_gruops, aes(x = as.numeric(Condition)+.1, y = value, group = Year, fill = Year), color = "white", shape = 21,  size = 1.5) +
   scale_colour_manual(values = pa) +
   scale_fill_manual(values = pa) +
   th + xlab("") + ylab("PPM") +
@@ -138,10 +138,10 @@ VCV_summary_condition[, 2:8] <- round(VCV_summary_condition[, 2:8], 4)
 
 VCV <- ggplot() +
   geom_flat_violin(data = VCV_frame, aes(x = Condition, y = value, fill = Year), position = position_nudge(x = .08, y = 0), adjust = 1.5, trim = FALSE, alpha = .25, colour = "white") +
-  geom_point(data = VCV_frame, aes(x = as.numeric(Condition)-.15, y = value, colour = Year, shape = Condition), position = position_jitter(width = .05), size = .25, shape = 20) +
+  geom_point(data = VCV_frame, aes(x = as.numeric(Condition)-.15, y = value, colour = Year), position = position_jitter(width = .05), size = 0.1, shape = 20) +
   geom_boxplot(data = VCV_frame, aes(x = Condition, y = value, fill = Year), outlier.shape = NA, alpha = .5, width = .1, colour = "black") +
   geom_line(data = VCV_summary_gruops, aes(x = as.numeric(Condition)+.1, y = value, group = Year, colour = Year), linetype = 3) +
-  geom_point(data = VCV_summary_gruops, aes(x = as.numeric(Condition)+.1, y = value, group = Year, colour = Year), shape = 18) +
+  geom_point(data = VCV_summary_gruops, aes(x = as.numeric(Condition)+.1, y = value, group = Year, fill = Year), color = "white", shape = 21,  size = 1.5) +
   scale_colour_manual(values = pa) +
   scale_fill_manual(values = pa) +
   th + xlab("") + ylab("VCV") +
@@ -172,10 +172,10 @@ IFR_summary_condition[, 2:8] <- round(IFR_summary_condition[, 2:8], 4)
 
 IFR <- ggplot() +
   geom_flat_violin(data = IFR_frame, aes(x = Condition, y = value, fill = Year), position = position_nudge(x = .08, y = 0), adjust = 1.5, trim = FALSE, alpha = .25, colour = "white") +
-  geom_point(data = IFR_frame, aes(x = as.numeric(Condition)-.15, y = value, colour = Year, shape = Condition), position = position_jitter(width = .05), size = .25, shape = 20) +
+  geom_point(data = IFR_frame, aes(x = as.numeric(Condition)-.15, y = value, colour = Year), position = position_jitter(width = .05), size = 0.1, shape = 20) +
   geom_boxplot(data = IFR_frame, aes(x = Condition, y = value, fill = Year), outlier.shape = NA, alpha = .5, width = .1, colour = "black") +
   geom_line(data = IFR_summary_gruops, aes(x = as.numeric(Condition)+.1, y = value, group = Year, colour = Year), linetype = 3) +
-  geom_point(data = IFR_summary_gruops, aes(x = as.numeric(Condition)+.1, y = value, group = Year, colour = Year), shape = 18, alpha = 0.5) +
+  geom_point(data = IFR_summary_gruops, aes(x = as.numeric(Condition)+.1, y = value, group = Year, fill = Year), color = "white", shape = 21,  size = 1.5) +
   scale_colour_manual(values = pa) +
   scale_fill_manual(values = pa) +
   th + xlab("") + ylab("IFR") +

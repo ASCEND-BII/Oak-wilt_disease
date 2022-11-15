@@ -49,16 +49,19 @@ wilted <- subset(data_2019, Condition == "Wilted")
 dead <- subset(data_2019, Condition == "Dead")
 
 #Split
+set.seed(825)
 s_healthy <- createDataPartition(healthy$tile,
                                   p = 0.6,
                                   list = FALSE,
                                   times = 1)
 
+set.seed(825)
 s_wilted <- createDataPartition(wilted$tile,
                                p = 0.6,
                                list = FALSE,
                                times = 1)
 
+set.seed(825)
 s_dead <- createDataPartition(dead$tile,
                                p = 0.6,
                                list = FALSE,
@@ -67,11 +70,15 @@ s_dead <- createDataPartition(dead$tile,
 condition_training <- rbind(healthy[s_healthy,], wilted[s_wilted,], dead[s_dead,])
 condition_testing <- rbind(healthy[!s_healthy,], wilted[!s_wilted,], dead[!s_dead,])
 
+#Export datasets
+fwrite(condition_training, paste0(path, "/training_2019.csv"))
+fwrite(condition_testing, paste0(path, "/testing_2019.csv"))
+
 #Names for training
 names <-  c("Condition", "PPM", "VGM", "VCV", "IFR")
 
 #-------------------------------------------------------------------------------
-#Model
+# Function for Model
 
 model_training <- function(data_model, model, tune = NULL, threads = 4) {
   
@@ -117,6 +124,9 @@ model_training <- function(data_model, model, tune = NULL, threads = 4) {
 }
 
 data_model <- condition_training[, ..names]
+
+#-------------------------------------------------------------------------------
+# Run ML models
 
 #Run LDA
 lda <- model_training(data_model, 
