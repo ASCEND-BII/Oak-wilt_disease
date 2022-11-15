@@ -98,7 +98,7 @@ model_training <- function(data_model, model, tune = NULL, threads = 4) {
   #No tune
   if(is.null(tune)) {
     
-    set.seed(825)
+    #set.seed(825)
     ml_model <- train(Condition ~ ., data = data_model, 
                       method= model, 
                       trControl = cfitControl)
@@ -106,7 +106,7 @@ model_training <- function(data_model, model, tune = NULL, threads = 4) {
     
   } else { #Use tune
     
-    set.seed(825)
+    #set.seed(825)
     ml_model <- train(Condition ~ ., data = data_model, 
                       method= model, 
                       trControl = cfitControl,
@@ -126,7 +126,7 @@ model_training <- function(data_model, model, tune = NULL, threads = 4) {
 data_model <- condition_training[, ..names]
 
 #-------------------------------------------------------------------------------
-# Run ML models
+# Find the 'best model'
 
 #Run LDA
 lda <- model_training(data_model, 
@@ -202,12 +202,42 @@ bwplot(resamps, layout = c(2, 1))
 saveRDS(models, "data/models/models.rds")
 
 #-------------------------------------------------------------------------------
+# Variance of the best model (SVM)
+
+variance_training <- function(data_model, times = 10) {
+  
+  models <- list()
+  
+  for(i in 1:times) {
+    
+    svmLinear_tune <- expand.grid(C = 1)
+    svmLinear <- model_training(data_model, 
+                                model = "svmLinear", 
+                                tune = svmLinear_tune,
+                                threads = 4)
+    
+    models[[i]] <- svmLinear
+    names(models)[i] <- paste0("SVM_", i)
+    
+  }
+  
+  return(models)
+
+}
+
+final_model <- variance_training(data_model, times = 10)
+
+#Export final model
+saveRDS(final_model, "data/models/final_model.rds")
+
+#-------------------------------------------------------------------------------
 # Model Testing function
 
 model_testing <- function(models, 
                           dataset,
                           type = "Training",
-                          year = 2019) {
+                          year = 2019,
+                          tile = "All") {
   
   #Number of models
   n_models <- length(models)
@@ -231,11 +261,13 @@ model_testing <- function(models,
     
     #Merge
     overal <- cbind(data.table(Model = names(models)[i], 
+                               Tile = tile,
                                Type = type,
                                Year = year), 
                                matrix(cm$overall, nrow = 1))
     
     byClass <- cbind(data.table(Type = type,
+                                Tile = tile,
                                 Year = year,
                                 Model = names(models)[i],
                                 Class = rownames(cm$byClass)), 
@@ -247,8 +279,8 @@ model_testing <- function(models,
     
   }
   
-  colnames(results_overal)[4:10] <- names(cm$overall)
-  colnames(results_byClass)[5:15] <- colnames(cm$byClass)
+  colnames(results_overal)[5:11] <- names(cm$overall)
+  colnames(results_byClass)[6:16] <- colnames(cm$byClass)
   
   return(list(overal = results_overal, byClass = results_byClass))
   
@@ -257,35 +289,98 @@ model_testing <- function(models,
 #-------------------------------------------------------------------------------
 #Validate models
 
-training_2019 <- model_testing(models, 
+#Temporal
+training_2019 <- model_testing(final_model, 
                                dataset = condition_training[, ..names], 
                                type = "Training",
-                               year = 2019)
+                               year = 2019,
+                               tile = "All")
 
-testing_2019 <- model_testing(models, 
+testing_2019 <- model_testing(final_model, 
                               dataset = condition_testing[, ..names], 
                               type = "Testing",
-                              year = 2019)
+                              year = 2019,
+                              tile = "All")
 
-testing_2018 <- model_testing(models, 
+testing_2018 <- model_testing(final_model, 
                               dataset = data_2018[, ..names], 
                               type = "Testing",
-                              year = 2018)
+                              year = 2018,
+                              tile = "All")
 
-testing_2021 <- model_testing(models, 
+testing_2021 <- model_testing(final_model, 
                               dataset = data_2021[, ..names], 
                               type = "Testing",
-                              year = 2021)
+                              year = 2021,
+                              tile = "All")
+
+#Spatial
+X0014_Y0024_2019 <- model_testing(final_model, 
+                                  dataset = condition_testing[tile == "X0014_Y0024", ..names], 
+                                  type = "Testing",
+                                  year = 2019,
+                                  tile = "X0014_Y0024")
+
+X0015_Y0024_2019 <- model_testing(final_model, 
+                                  dataset = condition_testing[tile == "X0015_Y0024", ..names], 
+                                  type = "Testing",
+                                  year = 2019,
+                                  tile = "X0015_Y0024")
+
+X0016_Y0024_2019 <- model_testing(final_model, 
+                                  dataset = condition_testing[tile == "X0016_Y0024", ..names], 
+                                  type = "Testing",
+                                  year = 2019,
+                                  tile = "X0016_Y0024")
+
+X0016_Y0025_2019 <- model_testing(final_model, 
+                                  dataset = condition_testing[tile == "X0016_Y0025", ..names], 
+                                  type = "Testing",
+                                  year = 2019,
+                                  tile = "X0016_Y0025")
+
+X0016_Y0027_2019 <- model_testing(final_model, 
+                                  dataset = condition_testing[tile == "X0016_Y0027", ..names], 
+                                  type = "Testing",
+                                  year = 2019,
+                                  tile = "X0016_Y0027")
+
+X0017_Y0024_2019 <- model_testing(final_model, 
+                                  dataset = condition_testing[tile == "X0017_Y0024", ..names], 
+                                  type = "Testing",
+                                  year = 2019,
+                                  tile = "X0017_Y0024")
+
+X0017_Y0026_2019 <- model_testing(final_model, 
+                                  dataset = condition_testing[tile == "X0017_Y0026", ..names], 
+                                  type = "Testing",
+                                  year = 2019,
+                                  tile = "X0017_Y0026")
+
 
 overal <- rbind(training_2019$overal,
                 testing_2019$overal,
                 testing_2018$overal,
-                testing_2021$overal)
+                testing_2021$overal,
+                X0014_Y0024_2019$overal,
+                X0015_Y0024_2019$overal,
+                X0016_Y0024_2019$overal,
+                X0016_Y0025_2019$overal,
+                X0016_Y0027_2019$overal,
+                X0017_Y0024_2019$overal,
+                X0017_Y0026_2019$overal)
 
 byClass <- rbind(training_2019$byClass,
                  testing_2019$byClass,
                  testing_2018$byClass,
-                 testing_2021$byClass)
+                 testing_2021$byClass,
+                 X0014_Y0024_2019$byClass,
+                 X0015_Y0024_2019$byClass,
+                 X0016_Y0024_2019$byClass,
+                 X0016_Y0025_2019$byClass,
+                 X0016_Y0027_2019$byClass,
+                 X0017_Y0024_2019$byClass,
+                 X0017_Y0026_2019$byClass)
 
 fwrite(overal, "data/models/overal.csv")
 fwrite(byClass, "data/models/byClass.csv")
