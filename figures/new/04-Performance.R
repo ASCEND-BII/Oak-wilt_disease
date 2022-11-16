@@ -40,8 +40,9 @@ th <- theme_bw(base_size = tamano) + theme(plot.background = element_blank(),
 
 data <- fread("data/models/byClass.csv")
 
+data[Class == "Wilted", Class := "Symptomatic"]
 data$Class <- as.factor(data$Class)
-data$Class <- factor(data$Class, levels = c("Healthy", "Wilted", "Dead"))
+data$Class <- factor(data$Class, levels = c("Healthy", "Symptomatic", "Dead"))
 
 data$Year <- as.factor(data$Year)
 data$Year <- factor(data$Year, levels = c("2018", "2019", "2021"))
@@ -88,7 +89,51 @@ plot <- ggplot() +
   coord_cartesian(xlim = c(1, 3)) +
   facet_wrap(. ~ Metric)
 
-jpeg("performance.jpeg", quality = 100, res = 600, width = 210, height = 150, units = "mm", pointsize = 12) # JPEG device
+jpeg("temporal_performance.jpeg", quality = 100, res = 600, width = 210, height = 150, units = "mm", pointsize = 12) # JPEG device
+
+plot
+
+dev.off()
+
+# Spatial variation
+
+data_spatial <- data[Tile != "All"]
+data_spatial <- data_spatial[Type == "Testing"]
+
+data_spatial <- data_spatial[, c("Tile", "Class", "Balanced Accuracy", 
+                                   "Sensitivity", "Specificity", "F1")]
+data_spatial <- melt(data_spatial, id.vars = c("Tile", "Class"),
+                      measure.vars = c("Balanced Accuracy", "Sensitivity", "Specificity", "F1"),
+                      variable.name = "Metric",
+                      value.name = "value")
+colnames(data_spatial )[2] <- "Condition"
+data_spatial  <- data_spatial[order(Tile, Condition, Metric)]
+
+summary_gruops <- summarySE(data_spatial , measurevar = "value", groupvars=c("Metric"))
+
+summary_condition <- summarySE(data_spatial , measurevar = "value", groupvars=c("Tile",
+                                                                                "Condition",
+                                                                                "Metric"))
+
+
+plot <- ggplot() +
+  geom_vline(data = summary_gruops, aes(xintercept = value), linetype = "dotted", 
+             color = "black", size = 0.4) +
+  geom_errorbar(data = summary_condition, aes(xmin= value-sd, xmax= value+sd, 
+                                              y = Tile, colour = Condition, 
+                                              group = Condition), width=.2,
+                position=position_dodge(0.1)) +
+  geom_point(data = summary_condition, aes(x = value, y = Tile, colour = Condition, 
+                                           group = Condition, shape = Condition), 
+             size = 3, position=position_dodge(0.1)) +
+  geom_path(data = summary_condition, aes(x = value, y = Tile, group = Condition, 
+                                          colour = Condition), linetype = "dashed") +
+  th + ylab("Tile") + xlab("Value") +
+  scale_colour_manual(values = pa) +
+  #coord_cartesian(xlim = c(1, 3)) +
+  facet_wrap(. ~ Metric)
+
+jpeg("spatial_performance.jpeg", quality = 100, res = 600, width = 210, height = 120, units = "mm", pointsize = 12) # JPEG device
 
 plot
 

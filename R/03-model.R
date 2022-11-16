@@ -41,7 +41,7 @@ data_2021 <- data[year == "2021"]
 
 table(data_2019$Condition) 
 #Dead Healthy  Wilted 
-#1091    1232    1258 
+#1127    1139    955 
 
 #Subset for splitting
 healthy <- subset(data_2019,  Condition == "Healthy")
@@ -75,7 +75,7 @@ fwrite(condition_training, paste0(path, "/training_2019.csv"))
 fwrite(condition_testing, paste0(path, "/testing_2019.csv"))
 
 #Names for training
-names <-  c("Condition", "PPM", "VGM", "VCV", "IFR")
+names <-  c("Condition", "PPM", "VSS", "VCV", "IFR")
 
 #-------------------------------------------------------------------------------
 # Function for Model
@@ -98,7 +98,7 @@ model_training <- function(data_model, model, tune = NULL, threads = 4) {
   #No tune
   if(is.null(tune)) {
     
-    #set.seed(825)
+    set.seed(825)
     ml_model <- train(Condition ~ ., data = data_model, 
                       method= model, 
                       trControl = cfitControl)
@@ -106,7 +106,7 @@ model_training <- function(data_model, model, tune = NULL, threads = 4) {
     
   } else { #Use tune
     
-    #set.seed(825)
+    set.seed(825)
     ml_model <- train(Condition ~ ., data = data_model, 
                       method= model, 
                       trControl = cfitControl,
@@ -196,7 +196,13 @@ theme1$plot.symbol$pch = 16
 theme1$plot.line$col = rgb(1, 0, 0, .7)
 theme1$plot.line$lwd <- 2
 trellis.par.set(theme1)
+
+jpeg("mode-performance.jpeg", quality = 100, res = 300, width = 210, height = 80, units = "mm", pointsize = 12) # JPEG device
+
 bwplot(resamps, layout = c(2, 1))
+
+dev.off()
+
 
 #Export model
 saveRDS(models, "data/models/models.rds")
@@ -204,28 +210,46 @@ saveRDS(models, "data/models/models.rds")
 #-------------------------------------------------------------------------------
 # Variance of the best model (SVM)
 
-variance_training <- function(data_model, times = 10) {
+variance_training <- function(data_model, threads = 26, repeats = 10) {
+  
+  #Repeated 10-fold cross-validation
+  cfitControl <- trainControl(method = "cv",
+                              number = 10,
+                              classProbs = TRUE,
+                              savePredictions = TRUE)
   
   models <- list()
   
-  for(i in 1:times) {
+  for(i in 1:repeats) {
     
-    svmLinear_tune <- expand.grid(C = 1)
-    svmLinear <- model_training(data_model, 
-                                model = "svmLinear", 
-                                tune = svmLinear_tune,
-                                threads = 4)
+    #Run parallel
+    if(threads > 1) {
+      cl <- makePSOCKcluster(threads)
+      registerDoParallel(cl)
+    }
     
-    models[[i]] <- svmLinear
+    tune <- expand.grid(C = 1)
+    ml_model <- train(Condition ~ ., data = data_model, 
+                      method= "svmLinear", 
+                      trControl = cfitControl,
+                      tuneGrid = tune)
+    
+    models[[i]] <- ml_model
     names(models)[i] <- paste0("SVM_", i)
     
+  }
+  
+  #Stop parallel
+  if(threads > 1) {
+    stopCluster(cl)
+    Sys.sleep(3)
   }
   
   return(models)
 
 }
 
-final_model <- variance_training(data_model, times = 10)
+final_model <- variance_training(data_model, threads = 26, repeats = 10)
 
 #Export final model
 saveRDS(final_model, "data/models/final_model.rds")

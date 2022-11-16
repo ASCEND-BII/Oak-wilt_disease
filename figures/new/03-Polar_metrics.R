@@ -23,7 +23,7 @@ tamano2 <- 12
 th <- theme_bw(base_size = tamano) + theme(plot.background = element_blank(),
                                            panel.grid.major = element_blank(),
                                            panel.grid.minor = element_blank(),
-                                           plot.margin = margin(4, 6, 0, 0, "pt"),
+                                           plot.margin = margin(4, 6, 0, 2, "pt"),
                                            axis.text.x = element_text(color = "black", size = tamano2),
                                            axis.text.y = element_text(color = "black", size = tamano2),
                                            strip.text.x = element_text(size = tamano, color = "black"),
@@ -40,8 +40,9 @@ path <- "/media/antonio/antonio_ssd/TRAINING/level3_lsf-pixels"
 
 data <- fread(paste0(path, "/master_training.csv"))
 
+data[Condition == "Wilted", Condition := "Symptomatic"]
 data$Condition <- as.factor(data$Condition)
-data$Condition <- factor(data$Condition, levels = c("Healthy", "Wilted", "Dead"))
+data$Condition <- factor(data$Condition, levels = c("Healthy", "Symptomatic", "Dead"))
 
 data$year <- as.factor(data$year)
 data$year <- factor(data$year, levels = c("2018", "2019", "2021"))
@@ -69,7 +70,7 @@ VSS_summary_condition[, 2:8] <- round(VSS_summary_condition[, 2:8], 4)
 
 
 VSS <- ggplot() +
-    geom_flat_violin(data = VSS_frame, aes(x = Condition, y = value, fill = Year), position = position_nudge(x = .08, y = 0), adjust = 1.5, trim = FALSE, alpha = .25, colour = "white") +
+    geom_flat_violin(data = VSS_frame, aes(x = Condition, y = value, fill = Year), position = position_nudge(x = .08, y = 0), adjust = 1, trim = FALSE, alpha = .25, colour = "white") +
     geom_point(data = VSS_frame, aes(x = as.numeric(Condition)-.15, y = value, colour = Year), position = position_jitter(width = .05), size = 0.1, shape = 20) +
     geom_boxplot(data = VSS_frame, aes(x = Condition, y = value, fill = Year), outlier.shape = NA, alpha = .5, width = .1, colour = "black") +
     geom_line(data = VSS_summary_gruops, aes(x = as.numeric(Condition)+.1, y = value, group = Year, colour = Year), linetype = 3) +
@@ -87,8 +88,7 @@ PPM_select <- c("Condition", "year", "PPM")
 PPM_frame <- data[, ..PPM_select]
 colnames(PPM_frame) <- c("Condition", "Year", "value")
 PPM_frame <- PPM_frame[is.infinite(value) != TRUE]
-PPM_frame$value <- PPM_frame$value   
-PPM_frame <- PPM_frame[value <= 1.25]
+PPM_frame$value <- PPM_frame$value*100   
 
 #Summary
 PPM_summary_gruops <- summarySE(PPM_frame, measurevar = "value",
@@ -103,7 +103,7 @@ PPM_summary_condition[, 2:8] <- round(PPM_summary_condition[, 2:8], 4)
 
 
 PPM <- ggplot() +
-  geom_flat_violin(data = PPM_frame, aes(x = Condition, y = value, fill = Year), position = position_nudge(x = .08, y = 0), adjust = 1.5, trim = FALSE, alpha = .25, colour = "white") +
+  geom_flat_violin(data = PPM_frame, aes(x = Condition, y = value, fill = Year), position = position_nudge(x = .08, y = 0), adjust = 1, trim = FALSE, alpha = .25, colour = "white") +
   geom_point(data = PPM_frame, aes(x = as.numeric(Condition)-.15, y = value, colour = Year), position = position_jitter(width = .05), size = 0.1, shape = 20) +
   geom_boxplot(data = PPM_frame, aes(x = Condition, y = value, fill = Year), outlier.shape = NA, alpha = .5, width = .1, colour = "black") +
   geom_line(data = PPM_summary_gruops, aes(x = as.numeric(Condition)+.1, y = value, group = Year, colour = Year), linetype = 3) +
@@ -111,8 +111,8 @@ PPM <- ggplot() +
   scale_colour_manual(values = pa) +
   scale_fill_manual(values = pa) +
   th + xlab("") + ylab("PPM") +
-  scale_y_continuous(breaks = c(0, 0.4, 0.8)) +
-  coord_cartesian(xlim = c(0.5, 3.5), ylim = c(0, 0.85), expand = FALSE)
+  #scale_y_continuous(breaks = c(0, 0.4, 0.8)) +
+  coord_cartesian(xlim = c(0.5, 3.5), ylim = c(0.01, 0.18), expand = FALSE)
   
 
 #VCV --------------------------------------
@@ -122,7 +122,6 @@ VCV_frame <- data[, ..VCV_select]
 colnames(VCV_frame) <- c("Condition", "Year", "value")
 VCV_frame <- VCV_frame[is.infinite(value) != TRUE]
 VCV_frame$value <- VCV_frame$value   
-VCV_frame <- VCV_frame[value <= 1.25]
 
 #Summary
 VCV_summary_gruops <- summarySE(VCV_frame, measurevar = "value",
@@ -137,7 +136,7 @@ VCV_summary_condition[, 2:8] <- round(VCV_summary_condition[, 2:8], 4)
 
 
 VCV <- ggplot() +
-  geom_flat_violin(data = VCV_frame, aes(x = Condition, y = value, fill = Year), position = position_nudge(x = .08, y = 0), adjust = 1.5, trim = FALSE, alpha = .25, colour = "white") +
+  geom_flat_violin(data = VCV_frame, aes(x = Condition, y = value, fill = Year), position = position_nudge(x = .08, y = 0), adjust = 1, trim = FALSE, alpha = .25, colour = "white") +
   geom_point(data = VCV_frame, aes(x = as.numeric(Condition)-.15, y = value, colour = Year), position = position_jitter(width = .05), size = 0.1, shape = 20) +
   geom_boxplot(data = VCV_frame, aes(x = Condition, y = value, fill = Year), outlier.shape = NA, alpha = .5, width = .1, colour = "black") +
   geom_line(data = VCV_summary_gruops, aes(x = as.numeric(Condition)+.1, y = value, group = Year, colour = Year), linetype = 3) +
@@ -145,8 +144,8 @@ VCV <- ggplot() +
   scale_colour_manual(values = pa) +
   scale_fill_manual(values = pa) +
   th + xlab("") + ylab("VCV") +
-  scale_y_continuous(breaks = c(0, 0.2, 0.4, 0.6)) +
-  coord_cartesian(xlim = c(0.5, 3.5), ylim = c(0, 0.60), expand = FALSE)
+  scale_y_continuous(breaks = c(0, 0.2, 0.4)) +
+  coord_cartesian(xlim = c(0.5, 3.5), ylim = c(0, 0.56), expand = FALSE)
 
 
 
@@ -171,7 +170,7 @@ IFR_summary_condition$upper_ci <- IFR_summary_condition$value + IFR_summary_cond
 IFR_summary_condition[, 2:8] <- round(IFR_summary_condition[, 2:8], 4)
 
 IFR <- ggplot() +
-  geom_flat_violin(data = IFR_frame, aes(x = Condition, y = value, fill = Year), position = position_nudge(x = .08, y = 0), adjust = 1.5, trim = FALSE, alpha = .25, colour = "white") +
+  geom_flat_violin(data = IFR_frame, aes(x = Condition, y = value, fill = Year), position = position_nudge(x = .08, y = 0), adjust = 1, trim = FALSE, alpha = .25, colour = "white") +
   geom_point(data = IFR_frame, aes(x = as.numeric(Condition)-.15, y = value, colour = Year), position = position_jitter(width = .05), size = 0.1, shape = 20) +
   geom_boxplot(data = IFR_frame, aes(x = Condition, y = value, fill = Year), outlier.shape = NA, alpha = .5, width = .1, colour = "black") +
   geom_line(data = IFR_summary_gruops, aes(x = as.numeric(Condition)+.1, y = value, group = Year, colour = Year), linetype = 3) +
@@ -188,8 +187,8 @@ figure <- ggarrange(VSS, IFR,
                     VCV, PPM, 
                     labels = c("a", "b", "c", "d"),
                     font.label = list(size = 15, color = "black", face = "plain", family = NULL),
-                    label.x = 0.15,
-                    label.y = 0.99,
+                    label.x = 0.18,
+                    label.y = 0.97,
                     ncol = 2, nrow = 2,  align = "hv",
                     widths = c(2, 2),
                     heights = c(2, 2),

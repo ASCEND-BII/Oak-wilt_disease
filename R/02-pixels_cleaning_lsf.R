@@ -135,6 +135,6 @@ ggplot(data, aes(Condition, IFR, fill = YOI)) +
   theme(axis.title.x = element_blank()) +
   guides(fill = guide_legend(override.aes = list(alpha = 1,color="black"))) 
 
-data <- data[, c("tile", "ID", "Condition", "sensor", "N", "x", "y", "YOI", "PPM", "VGM", "VCV", "VSS", "IFR")]
+data <- data[, c("tile", "ID", "Condition", "sensor", "N", "x", "y", "YOI", "PPM", "VCV", "VSS", "IFR")]
 colnames(data)[8] <- "year"
 fwrite(data, paste0(path, "/master_training.csv"))

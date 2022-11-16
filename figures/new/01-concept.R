@@ -22,7 +22,7 @@ tamano2 <- 12
 th <- theme_bw(base_size = tamano) + theme(plot.background = element_blank(),
                                            panel.grid.major = element_blank(),
                                            panel.grid.minor = element_blank(),
-                                           plot.margin = margin(6, 12, 0, 0, "pt"),
+                                           plot.margin = margin(6, 15, 0, 2, "pt"),
                                            axis.text.x = element_text(color = "black", size = tamano2),
                                            axis.text.y = element_text(color = "black", size = tamano2),
                                            strip.text.x = element_text(size = tamano, color = "black"),
@@ -44,22 +44,26 @@ data_TSI <- na.exclude(data_TSI)
 jpeg("02-ts.jpeg", quality = 100, res = 300, width = 210, height = 80, units = "mm", pointsize = 12) # JPEG device
 
 ggplot() +
-      geom_rect(aes(xmin = as.IDate("2018-05-01"), xmax = as.IDate("2018-10-17"), ymin = -Inf, ymax = Inf), fill = pa[1], colour = NA, alpha = 0.2) +
-      geom_rect(aes(xmin = as.IDate("2019-05-02"), xmax = as.IDate("2019-10-20"), ymin = -Inf, ymax = Inf), fill = pa[2], colour = NA, alpha = 0.2) +
-      geom_rect(aes(xmin = as.IDate("2020-05-04"), xmax = as.IDate("2020-10-05"), ymin = -Inf, ymax = Inf), fill = pa[3], colour = NA, alpha = 0.2) +
+      geom_rect(aes(xmin = as.IDate("2017-06-01"), xmax = as.IDate("2017-09-17"), ymin = -Inf, ymax = Inf), fill = pa[1], colour = NA, alpha = 0.2) +
+      geom_rect(aes(xmin = as.IDate("2018-05-15"), xmax = as.IDate("2018-10-05"), ymin = -Inf, ymax = Inf), fill = pa[1], colour = NA, alpha = 0.2) +
+      geom_rect(aes(xmin = as.IDate("2019-05-20"), xmax = as.IDate("2019-10-29"), ymin = -Inf, ymax = Inf), fill = pa[2], colour = NA, alpha = 0.2) +
+      geom_rect(aes(xmin = as.IDate("2020-05-15"), xmax = as.IDate("2020-09-20"), ymin = -Inf, ymax = Inf), fill = pa[3], colour = NA, alpha = 0.2) +
+      geom_rect(aes(xmin = as.IDate("2021-05-20"), xmax = as.IDate("2021-10-05"), ymin = -Inf, ymax = Inf), fill = pa[3], colour = NA, alpha = 0.2) +
       geom_hline(yintercept= 0, col = "grey", linetype = "dotted") +
       geom_point(data = data_TSS, aes(x = TSS_date, TSS/10000), col = "white", fill = "grey", shape = 21, size = 2) +
       geom_line(data = data_TSI, aes(x = TSI_date, TSI/10000), col = "black", size = 0.4) +
       scale_x_date(date_breaks = "1 year", 
                date_labels = "%Y",
                expand = c(0,0),
-               limits = as.Date(c('2018-01-01','2021-01-01'))) +
+               limits = as.Date(c('2017-01-01','2022-01-01'))) +
       scale_y_continuous(expand = c(0,0),
-                         limits = c(-0.25, 0.5)) +
+                         limits = c(-0.35, 0.5)) +
       ylab("CCI") + xlab("Year") +
-      annotate("text", label = "Healthy", x = as.IDate("2018-07-30"), y = -0.17, size = 5, colour = pa[1]) +
-      annotate("text", label = "Diseased", x = as.IDate("2019-07-30"), y = -0.17, size = 5, colour = pa[2]) +
-      annotate("text", label = "Dead", x = as.IDate("2020-07-25"), y = -0.17, size = 5, colour = pa[3]) +
+      annotate("text", label = "Healthy", x = as.IDate("2017-07-27"), y = -0.26, size = 3, colour = pa[1]) +
+      annotate("text", label = "Healthy", x = as.IDate("2018-07-27"), y = -0.26, size = 3, colour = pa[1]) +
+      annotate("text", label = "Symptomatic", x = as.IDate("2019-08-09"), y = -0.26, size = 2.8, colour = pa[2]) +
+      annotate("text", label = "Dead", x = as.IDate("2020-07-20"), y = -0.26, size = 3, colour = pa[3]) +
+      annotate("text", label = "Dead", x = as.IDate("2021-07-27"), y = -0.26, size = 3, colour = pa[3]) +
       th
 
 dev.off()
@@ -67,8 +71,8 @@ dev.off()
 #-------------------------------------------------------------------------------
 #' Radial plot
 
-polar <- subset(data_TSI, TSI_date >= as.IDate("2018-01-01"))
-polar <- subset(polar, TSI_date <= as.IDate("2021-01-01"))
+polar <- subset(data_TSI, TSI_date >= as.IDate("2017-01-01"))
+polar <- subset(polar, TSI_date <= as.IDate("2022-01-01"))
 polar[TSI <= 0, TSI := 0]
 polar$Condition <- "a"
 polar[year(TSI_date) > 2019, Condition := "Dead"]
@@ -105,21 +109,21 @@ radial.plot(v,
             start = s.pos,
             label.pos= lab.pos, 
             labels = rad.labs,
-            radial.lim = c(0.0, 0.2, 0.4),
-            radial.labels = c("", 0.2, 0.4),
+            radial.lim = c(0.0, 0.25, 0.5),
+            radial.labels = c("", 0.25, 0.5),
             rp.type = 's',
             point.symbols = 19, 
             point.col = polar$color,
-            show.radial.grid= TRUE,
+            show.radial.grid= FALSE,
             grid.col='black',
             grid.unit= 'CCI')
 #radial.plot(c(0,0.4),c(0,rv_ang),
 #            clockwise=TRUE,start=s.pos,rp.type='r',
 #            lwd=2, lty = 1, line.col='gray45',add=TRUE) # rv_ang, Angle of avg vec
-radial.plot(c(0,0.4),c(0, avec_ang),
+radial.plot(c(0,0.5),c(0, avec_ang),
             clockwise=TRUE,start=s.pos,rp.type='r',
             lwd=1, lty = 2, line.col='gray45',add=TRUE) # rv_ang, Angle of avg vec
-radial.plot(c(0,0.4),c(0,avec_ang),
+radial.plot(c(0,0.5),c(0,avec_ang),
             clockwise=TRUE,start=s.pos,rp.type='s',
             point.symbols='*',cex=cxs*2,
             add=TRUE) # avec_ang, opposite angle of rv_ang
@@ -130,7 +134,7 @@ radial.plot(c(0,rv),c(rv_ang,rv_ang),
             clockwise=TRUE,start=s.pos,rp.type='s',
             point.symbols='*',cex=cxs*2,
             point.col='red',add=TRUE)   # rv, Magnitude of avg vec
-text(0.15, -0.05,'Average vector',col='red',cex= 0.5) # Add text label
+text(0.10, -0.01,'AV',col='red',cex= 0.5) # Add text label
 #text(-0.06, -0.32, 'Mid season', col='gray45', cex= 0.5) # Add text label
 text(0.10, 0.32, 'Offset', col='gray45', cex= 0.5) # Add text label
 
@@ -139,26 +143,29 @@ dev.off()
 #-------------------------------------------------------------------------------
 #' Accumulative plot
 
-data_cum <- data[, 9:12]
+data_cum <- data[, 7:12]
 data_cum <- na.exclude(data_cum)
-data_cum[Healthy < 0, Healthy := 0]
-data_cum[Diseased < 0, Diseased := 0]
-data_cum[Dead < 0, Dead := 0]
 
 #Cumsum
-data_cum$Healthy <- cumsum(data_cum$Healthy)/max(cumsum(data_cum$Healthy))
-data_cum$Diseased <- cumsum(data_cum$Diseased)/max(cumsum(data_cum$Diseased))
-data_cum$Dead <- cumsum(data_cum$Dead)/max(cumsum(data_cum$Dead))
+data_cum$Healthy_1 <- cumsum(data_cum$Healthy_1)/max(cumsum(data_cum$Healthy_1))
+data_cum$Healthy_2 <- cumsum(data_cum$Healthy_2)/max(cumsum(data_cum$Healthy_2))
+data_cum$Symptomatic <- cumsum(data_cum$Symptomatic)/max(cumsum(data_cum$Symptomatic))
+data_cum$Dead_1 <- cumsum(data_cum$Dead_1)/max(cumsum(data_cum$Dead_1))
+data_cum$Dead_2 <- cumsum(data_cum$Dead_2)/max(cumsum(data_cum$Dead_2))
 
 jpeg("02-cumsum.jpeg", quality = 100, res = 300, width = 105, height = 80, units = "mm", pointsize = 12) # JPEG device
 
 ggplot(data_cum) +
-  geom_point(aes(x = DOY, y = Healthy), col = "white", fill = pa[1], shape = 21, size = 2) +
-  geom_point(aes(x = DOY, y = Diseased), col = "white", fill = pa[2], shape = 21, size = 2) +
-  geom_point(aes(x = DOY, y = Dead), col = "white", fill = pa[3], shape = 21, size = 2) +
-  geom_line(aes(x = DOY, y = Healthy), col = pa[1], size = 0.4) +
-  geom_line(aes(x = DOY, y = Diseased), col = pa[2], size = 0.4) +
-  geom_line(aes(x = DOY, y = Dead), col = pa[3], size = 0.4) +
+  geom_line(aes(x = DOY-2, y = Healthy_1), col = pa[1], size = 0.4, linetype= "dotted") +
+  geom_line(aes(x = DOY-2, y = Healthy_2), col = pa[1], size = 0.4, linetype= "dotted") +
+  geom_line(aes(x = DOY, y = Symptomatic), col = pa[2], size = 0.4, linetype= "dotted") +
+  geom_line(aes(x = DOY+1, y = Dead_1), col = pa[3], size = 0.4, linetype= "dotted") +
+  geom_line(aes(x = DOY+2, y = Dead_2), col = pa[3], size = 0.4, linetype= "dotted") +
+  geom_point(aes(x = DOY-2, y = Healthy_1), col = "white", fill = pa[1], shape = 21, size = 2, alpha = 0.75) +
+  geom_point(aes(x = DOY-1, y = Healthy_2), col = "white", fill = pa[1], shape = 21, size = 2, alpha = 0.75) +
+  geom_point(aes(x = DOY, y = Symptomatic), col = "white", fill = pa[2], shape = 24, size = 2, alpha = 0.75) +
+  geom_point(aes(x = DOY+1, y = Dead_1), col = "white", fill = pa[3], shape = 22, size = 2, alpha = 0.75) +
+  geom_point(aes(x = DOY+2, y = Dead_2), col = "white", fill = pa[3], shape = 22, size = 2, alpha = 0.75) +
   scale_y_continuous(expand = c(0,0),
                      limits = c(-0.01, 1.01)) +
   scale_x_continuous(expand = c(0,0),
