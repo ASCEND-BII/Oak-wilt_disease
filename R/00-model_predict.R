@@ -8,8 +8,8 @@ model_predict <- function(scene, models, threads = 4) {
                           type = "prob", cores = threads, 
                           na.rm = TRUE, cpkgs = c("caret"))
     
-    predicted[[i]] <- repetition
-    names(predicted)[[i]] <- names(models)[i]
+    predicted[[k]] <- repetition
+    names(predicted)[[k]] <- names(models)[k]
     
   }
   
@@ -18,15 +18,15 @@ model_predict <- function(scene, models, threads = 4) {
     
     if(k == 1) {
       
-      Healthy <- predicted[[i]]$Healthy
-      Wilted <- predicted[[i]]$Wilted
-      Dead <- predicted[[i]]$Dead
+      Healthy <- predicted[[k]]$Healthy
+      Wilted <- predicted[[k]]$Wilted
+      Dead <- predicted[[k]]$Dead
       
     }
     
-    Healthy <- c(Healthy, predicted[[i]]$Healthy)
-    Wilted <- c(Wilted, predicted[[i]]$Wilted)
-    Dead <- c(Dead, predicted[[i]]$Dead)
+    Healthy <- c(Healthy, predicted[[k]]$Healthy)
+    Wilted <- c(Wilted, predicted[[k]]$Wilted)
+    Dead <- c(Dead, predicted[[k]]$Dead)
     
   }
   
