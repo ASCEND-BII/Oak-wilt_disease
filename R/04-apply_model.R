@@ -20,7 +20,7 @@ source("R/00-model_predict.R")
 #-------------------------------------------------------------------------------
 # Root path
 path <- "/media/antonio/antonio_ssd/FORCE/corregistration/application"
-path <- "E:/FORCE/corregistration/application"
+path <- "F:/TRAINING"
 
 #-------------------------------------------------------------------------------
 #Arguments
@@ -30,10 +30,10 @@ path <- "E:/FORCE/corregistration/application"
 #' @param out_path: path and name of the .txt outputs
 #' @param threads: the number of threads to use for parallel processing
 
-root_path <- paste0(path, "/level3_shifted_phenology")
-models <- readRDS("data/models/models.rds")
-out_path <- paste0(path, "/level4_shifted")
-threads <- 24
+root_path <- paste0(path, "/level3_lsf")
+models <- readRDS("data/models/final_model.rds")
+out_path <- paste0(path, "/level4")
+threads <- 2
 
 apply_model(root_path, models, out_paths, threads)
 
@@ -67,10 +67,12 @@ apply_model <- function(root_path, models, out_paths, threads) {
   frame <- frame[order(tile, metric)]
   
   #Subset metric
-  #frame <- subset(frame, metric == "VGV" |
-  #                  metric == "VSS" |
-  #                  metric == "VPA" |
-  #                  metric == "IGS")
+  frame <- subset(frame, metric == "VSS" |
+                         metric == "IFR" |
+                         metric == "VGM" |
+                         metric == "VGV" |
+                         metric == "VPS" |
+                         metric == "VEV")
   
   #Get date
   date <- rast(paste0(root_path, "/", files[1]))
@@ -84,105 +86,105 @@ apply_model <- function(root_path, models, out_paths, threads) {
   registerDoParallel(cl)
   
   # Loop over scenes to estimate kNDVI
-  extraction <- foreach(i = 1:nrow(unique_tile),
-                        .combine = rbind,
-                        .packages = c("terra", "data.table"),
-                        .inorder = F) %dopar% {
+  for(i in 1:nrow(unique_tile) {
+    
+    sub_frame <- frame[tile == unique_tile[i]]
+    
+    #Read scenes -------------------
+    VSS <- sub_frame[metric == "VSS" & VI == "CCI"]
+    VSS <- rast(paste0(root_path, "/",
+                       VSS$tile[1], "/", 
+                       VSS$scene[1]))
+    
+    IFR <- sub_frame[metric == "IFR" & VI == "CCI"]
+    IFR <- rast(paste0(root_path, "/",
+                       IFR$tile[1], "/", 
+                       IFR$scene[1]))
+    
+    VGM <- sub_frame[metric == "VGM" & VI == "CCI"]
+    VGM <- rast(paste0(root_path, "/",
+                       VGM$tile[1], "/", 
+                       VGM$scene[1]))
+    
+    VGV <- sub_frame[metric == "VGV" & VI == "CCI"]
+    VGV <- rast(paste0(root_path, "/",
+                       VGV$tile[1], "/", 
+                       VGV$scene[1]))
+    
+    VPS <- sub_frame[metric == "VPS" & VI == "CCI"]
+    VPS <- rast(paste0(root_path, "/",
+                       VPS$tile[1], "/", 
+                       VPS$scene[1]))
+    
+    KNDVI <- sub_frame[metric == "VSS" & VI == "KNV"]
+    KNDVI <- rast(paste0(root_path, "/",
+                         KNDVI$tile[1], "/", 
+                         KNDVI$scene[1]))
+    
+    for(j in 1:length(date)) {
+      
+      #Mask KNDVI
+      mask <- KNDVI[date[j]]
+      mask[mask < 3500] <- 0
+      mask[mask >= 3500] <- 1
+      
+      #Create stack
+      VCV <- VGV[date[j]]/VGM[date[j]]
+      VCV[VCV == Inf] <- NA
+      PPM <- (VPS[date[j]]-VGM[date[j]])/VGM[date[j]]
+      PPM[PPM == Inf] <- NA
+      
+      scene <- c(PPM,
+                 VSS[date[j]],
+                 VCV,
+                 IFR[date[j]])
+      
+      names(scene) <- c("PPM", "VSS", "VCV", "IFR")
+      
+      #Mask stack
+      scene <- mask(scene, mask, maskvalues = 0)
+      
+      #LDA Model application -----------------------------
+      predictions <- predict(scene, model = models$SVM_1, 
+                             type = "prob", cores = 4, 
+                             na.rm = TRUE, cpkgs = c("caret"))
+      
+      
+      mean <- mean()
+      sd = 
+      
+      #Export model
+      export_mean <- paste0(out_path, "/", 
+                            sub_frame$tile[1], "/",
+                            date[j], "_predicted_mean.tif")
+
+      export_sd <- paste0(out_path, "/", 
+                          sub_frame$tile[1], "/",
+                          date[j], "_predicted_SD.tif")
+      
+      #Export
+      writeRaster(x = predicted_mean,
+                  filename = export_name,
+                  names = c("Healthy", "Symptomatic", "Dead"),
+                  NAflag = 0,
+                  overwrite= TRUE)
+      
+      writeRaster(x = predicted_sd,
+                  filename = export_name,
+                  names = c("Healthy", "Symptomatic", "Dead"),
+                  NAflag = 0,
+                  overwrite= TRUE)
+      
+      gc()
+      
+    }
+    
+    #Remove residuals
+    #rm(list = c("scene", "healthy", "wilted", "dead",
+    #            "kNDVI", "predicted", "export_name"))
                           
-                          sub_frame <- frame[tile == unique_tile[i]]
                           
-                          #Read scenes -------------------
-                          IGS <- sub_frame[metric == "IGS" & VI == "CCI"]
-                          IGS <- rast(paste0(root_path, "/",
-                                             IGS$tile[1], "/", 
-                                             IGS$scene[1]))
-                          
-                          VGV <- sub_frame[metric == "VGV" & VI == "CCI"]
-                          VGV <- rast(paste0(root_path, "/",
-                                             VGV$tile[1], "/", 
-                                             VGV$scene[1]))
-                          
-                          VPA <- sub_frame[metric == "VPA" & VI == "CCI"]
-                          VPA <- rast(paste0(root_path, "/",
-                                             VPA$tile[1], "/", 
-                                             VPA$scene[1]))
-                          
-                          VSS <- sub_frame[metric == "VSS" & VI == "CCI"]
-                          VSS <- rast(paste0(root_path, "/",
-                                             VSS$tile[1], "/", 
-                                             VSS$scene[1]))
-                          
-                          KNDVI <- sub_frame[metric == "VPS" & VI == "KNV"]
-                          KNDVI <- rast(paste0(root_path, "/",
-                                               KNDVI$tile[1], "/", 
-                                               KNDVI$scene[1]))
-                          
-                          for(j in 1:length(date)) {
-                            
-                            scene <- c(VGV[date[j]],
-                                       VSS[date[j]],
-                                       VPA[date[j]],
-                                       IGS[date[j]])
-                            names(scene) <- c("VGV", "VSS", "VPA", "IGS")
-                            
-                            #LDA Model application -----------------------------
-                            classes <- predict(scene, model = models$condition, type = "prob")
-                            
-                            #BGLM Model application ----------------------------
-                            # Healthy
-                            healthy <- model_predict(scene, models$healthy)
-                            
-                            # Wilted
-                            wilted <- model_predict(scene, models$wilted)
-                            
-                            # Dead
-                            dead <- model_predict(scene, models$dead)
-                            
-                            #Predicted scene
-                            bglm_predicted <- c(healthy, wilted, dead)
-                            names(bglm_predicted) <- c("healthy", "wilted", "dead")
-                            
-                            #Mask KNDVI
-                            mask <- KNDVI[date[j]]
-                            mask[mask < 5000] <- 0
-                            mask[mask >= 5000] <- 1
-                            bglm_predicted <- mask(bglm_predicted, mask, maskvalues = 0)
-                            
-                            export_name <- paste0(out_path, "/", 
-                                                  sub_frame$tile[1], "/",
-                                                  date[j], "_predicted.tif")
-                            
-                            #Export
-                            writeRaster(x = bglm_predicted,
-                                        filename = export_name,
-                                        names = c("healthy", "wilted", "dead"),
-                                        NAflag = 0,
-                                        overwrite= TRUE)
-                            
-                            classes <- mask(classes, mask, maskvalues = 0)
-                            
-                            export_name <- paste0(out_path, "/", 
-                                                  sub_frame$tile[1], "/",
-                                                  date[j], "_predicted_LDA.tif")
-                            
-                            #Export
-                            writeRaster(x = classes,
-                                        filename = export_name,
-                                        names = c("dead", "healthy", "wilted"),
-                                        NAflag = 0,
-                                        overwrite= TRUE)
-                            
-                          }
-                          
-                          #Remove residuals
-                          #rm(list = c("scene", "healthy", "wilted", "dead",
-                          #            "kNDVI", "predicted", "export_name"))
-                          gc()
-                          
-                        }
+  }
   
-  #Stop cluster
-  stopCluster(cl)
-  gc()
   
 }
