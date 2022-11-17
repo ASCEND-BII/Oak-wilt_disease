@@ -41,7 +41,7 @@ data_2021 <- data[year == "2021"]
 
 table(data_2019$Condition) 
 #Dead Healthy  Wilted 
-#1120    1177    998 
+#1213    1229    1075 
 
 #Subset for splitting
 healthy <- subset(data_2019,  Condition == "Healthy")
@@ -74,6 +74,9 @@ condition_testing <- rbind(healthy[!s_healthy,], wilted[!s_wilted,], dead[!s_dea
 fwrite(condition_training, paste0(path, "/training_2019.csv"))
 fwrite(condition_testing, paste0(path, "/testing_2019.csv"))
 
+condition_training <- fread(paste0(path, "/training_2019.csv"))
+condition_test <- fread(paste0(path, "/testing_2019.csv"))
+
 #Names for training
 names <-  c("Condition", "PPM", "VSS", "VCV", "IFR")
 
@@ -81,6 +84,8 @@ names <-  c("Condition", "PPM", "VSS", "VCV", "IFR")
 # Function for Model
 
 model_training <- function(data_model, model, tune = NULL, threads = 4) {
+  
+  
   
   #Repeated 10-fold cross-validation
   cfitControl <- trainControl(method = "repeatedcv",
@@ -124,6 +129,7 @@ model_training <- function(data_model, model, tune = NULL, threads = 4) {
 }
 
 data_model <- condition_training[, ..names]
+condition_training <- subset(condition_training, tile != "")
 
 #-------------------------------------------------------------------------------
 # Find the 'best model'
@@ -210,11 +216,12 @@ saveRDS(models, "data/models/models.rds")
 #-------------------------------------------------------------------------------
 # Variance of the best model (SVM)
 
-variance_training <- function(data_model, threads = 26, repeats = 10) {
+variance_training <- function(data_model, threads = 4, repeats = 10) {
+  
+  folds <- createMultiFolds(data_model$Condition, k = 10, times = 5)
   
   #Repeated 10-fold cross-validation
   cfitControl <- trainControl(method = "cv",
-                              number = 10,
                               classProbs = TRUE,
                               savePredictions = TRUE)
   
@@ -228,11 +235,12 @@ variance_training <- function(data_model, threads = 26, repeats = 10) {
       registerDoParallel(cl)
     }
     
-    tune <- expand.grid(C = 0.7)
+    tune <- expand.grid(C = 0.5)
     ml_model <- train(Condition ~ ., data = data_model, 
                       method= "svmLinear", 
                       trControl = cfitControl,
-                      tuneGrid = tune)
+                      tuneGrid = tune,
+                      index = folds)
     
     models[[i]] <- ml_model
     names(models)[i] <- paste0("SVM_", i)
@@ -249,7 +257,7 @@ variance_training <- function(data_model, threads = 26, repeats = 10) {
 
 }
 
-final_model <- variance_training(data_model, threads = 26, repeats = 10)
+final_model <- variance_training(data_model, threads = 4, repeats = 10)
 
 #Export final model
 saveRDS(final_model, "data/models/final_model.rds")

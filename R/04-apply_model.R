@@ -84,7 +84,7 @@ apply_model <- function(root_path, models, out_paths, threads) {
   # Set up cluster
   #cl <- makeCluster(threads, type = "FORK")
   #registerDoParallel(cl)
-  i <- 1
+  i <- 3
   # Loop over scenes to estimate kNDVI
   for(i in 1:nrow(unique_tile) {
     
@@ -145,13 +145,12 @@ apply_model <- function(root_path, models, out_paths, threads) {
       scene <- mask(scene, mask, maskvalues = 0)
       
       #LDA Model application -----------------------------
-      predictions <- predict(scene, model = models$SVM_1, 
+      predictions <- predict(scene, model = models$SVM_5, 
                              type = "prob", cores = 4, 
                              na.rm = TRUE, cpkgs = c("caret"))
       
       
-      mean <- mean()
-      sd = 
+      writeRaster(predictions, "cedar_2021.tif")
       
       #Export model
       export_mean <- paste0(out_path, "/", 

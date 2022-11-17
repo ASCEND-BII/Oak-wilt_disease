@@ -70,20 +70,19 @@ data <- fread(paste0(path, "/master_observations.csv"))
 data$Condition <- as.factor(data$Condition)
 data$Condition <- factor(data$Condition, levels = c("Healthy", "Wilted", "Dead"))
 
-data$YOI <- as.factor(data$YOI)
-data$YOI <- factor(data$YOI, levels = c("2018", "2019", "2021"))
-
 data$current <- data$YOI == data$observation
 data <- subset(data, current == TRUE)
 data <- subset(data, VI == "CCI")
 
-#
-data$year <- as.factor(data$year)
-data$year <- factor(data$year, levels = c("2018", "2019", "2021"))
+data$YOI <- as.factor(data$YOI)
+data$YOI <- factor(data$YOI, levels = c("2018", "2019", "2021"))
 
-data$current <- data$year == data$observation
-data <- subset(data, current == TRUE)
-data <- subset(data, VI == "CCI")
+#
+#data$year <- as.factor(data$year)
+#data$year <- factor(data$year, levels = c("2018", "2019", "2021"))
+
+#data$current <- data$year == data$observation
+#data <- subset(data, current == TRUE)
 
 #Remove 0 values
 data[VPS == 0, VPS := NA]
@@ -109,16 +108,7 @@ ggplot(data, aes(Condition, PPM, fill = YOI)) +
   guides(fill = guide_legend(override.aes = list(alpha = 1,color="black"))) +
   coord_cartesian(ylim = c(0, 0.85))
 
-ggplot(data, aes(Condition, VGM, fill = YOI)) + 
-  ggbeeswarm::geom_quasirandom(shape = 21, size=2, dodge.width = .75, color="black", alpha=.5, show.legend = F) +
-  scale_fill_viridis_d( option = "D") +
-  geom_violin(alpha=0.5, position = position_dodge(width = .75), size = 0.4, color=NA) +
-  geom_boxplot(outlier.size = -1, color="black", lwd= .4, alpha = 0.7,show.legend = F)+
-  theme_minimal() +
-  theme(axis.title.x = element_blank()) +
-  guides(fill = guide_legend(override.aes = list(alpha = 1,color="black"))) 
-
-ggplot(data, aes(Condition, VGV/VGM, fill = YOI)) + 
+ggplot(data, aes(Condition, VCV, fill = YOI)) + 
   ggbeeswarm::geom_quasirandom(shape = 21, size=2, dodge.width = .75, color="black", alpha=.5, show.legend = F) +
   scale_fill_viridis_d( option = "D")+
   geom_violin(alpha=0.5, position = position_dodge(width = .75), size = 0.4, color=NA) +
