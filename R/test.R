@@ -20,8 +20,8 @@ library(terra)
 #' @param threads: the number of threads to use for parallel processing
 
 path <- "/media/antonio/antonio_ssd/TRAINING"
-
 path <- "F:/TRAINING"
+
 root_path <- paste0(path, "/level3_lsf/X0014_Y0024")
 vector_path <- paste0(path, "/OBSERVATIONS/2018_AVIRIS-NG/X0014_Y0024_aviris.gpkg")
 out_path <- paste0(path, "/level3_lsf-pixels/X0014_Y0024_AVIRIS_lsf.txt")
@@ -100,6 +100,7 @@ vi_extraction <- function(root_path, vector_path, out_path, year, tile) {
     
     values_melted$VI <- frame$VI[i]
     values_melted$metric <- frame$metric[i]
+    values_melted$YOI <- year
     
     #Normalization
     values_melted$value <- (values_melted$value - vi_mean)/sd_mean

@@ -43,7 +43,10 @@ for(i in 1:nrow(frame)) {
 
 }
 
+data <- na.exclude(data)
+
 #Reshape frame
+#data <- dcast(data, tile + sensor + ID + x + y + year + Condition ~ metric)
 data <- dcast(data, tile + sensor + ID + x + y + YOI + Condition + observation + VI ~ metric)
 data[, sensor := strsplit(sensor, "_")[[1]][1], by = seq_along(1:nrow(data))]
 data <- na.exclude(data)
@@ -74,6 +77,14 @@ data$current <- data$YOI == data$observation
 data <- subset(data, current == TRUE)
 data <- subset(data, VI == "CCI")
 
+#
+data$year <- as.factor(data$year)
+data$year <- factor(data$year, levels = c("2018", "2019", "2021"))
+
+data$current <- data$year == data$observation
+data <- subset(data, current == TRUE)
+data <- subset(data, VI == "CCI")
+
 #Remove 0 values
 data[VPS == 0, VPS := NA]
 data[VGM == 0, VGM := NA]
@@ -83,12 +94,12 @@ data[IFR == 0, IFR := NA]
 data <- na.exclude(data)
 
 #New variables
-data$PPM <- (data$VPS/data$VGM)/data$VGM
+data$PPM <- (data$VPS-data$VGM)/data$VGM
 data$VCV <- data$VGV/data$VGM
 
 #-------------------------------------------------------------------------------
 
-ggplot(data, aes(Condition, (VPS-VGM)/VGM, fill = YOI)) + 
+ggplot(data, aes(Condition, PPM, fill = YOI)) + 
   ggbeeswarm::geom_quasirandom(shape = 21, size=2, dodge.width = .75, color="black", alpha=.5, show.legend = F) +
   scale_fill_viridis_d( option = "D")+
   geom_violin(alpha=0.5, position = position_dodge(width = .75), size = 0.4, color=NA) +

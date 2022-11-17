@@ -1,4 +1,4 @@
-model_predict <- function(scene, models, threads = 4) {
+model_predict <- function(scene, models, threads = 10) {
   
   predicted <- list()
   
@@ -29,6 +29,8 @@ model_predict <- function(scene, models, threads = 4) {
     Dead <- c(Dead, predicted[[k]]$Dead)
     
   }
+  
+  names(Healthy) <- names(models)[1:9]
   
   mean_Healthy <- app(Healthy, fun= "mean")
   mean_Wilted <- app(Wilted, fun = "mean")

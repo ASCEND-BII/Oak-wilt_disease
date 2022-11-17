@@ -127,7 +127,7 @@ plot <- ggplot() +
                                            group = Condition, shape = Condition), 
              size = 3, position=position_dodge(0.1)) +
   geom_path(data = summary_condition, aes(x = value, y = Tile, group = Condition, 
-                                          colour = Condition), linetype = "dashed") +
+                                          colour = Condition), linetype = "dashed", size = 0.1) +
   th + ylab("Tile") + xlab("Value") +
   scale_colour_manual(values = pa) +
   #coord_cartesian(xlim = c(1, 3)) +

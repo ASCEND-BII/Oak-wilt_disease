@@ -15,7 +15,7 @@ library(Rmisc)
 
 #Layout properties -------------------------------------------------------------
 
-pa <- c("#d73027", "#fee090", "#252525")
+pa <- c("#d73027", "#0571b0", "#252525")
 #pa <- c("#481568FF", "#1F968BFF", "#B8DE29FF")
 tamano <- 14
 tamano2 <- 12
@@ -23,7 +23,7 @@ tamano2 <- 12
 th <- theme_bw(base_size = tamano) + theme(plot.background = element_blank(),
                                            panel.grid.major = element_blank(),
                                            panel.grid.minor = element_blank(),
-                                           plot.margin = margin(4, 6, 0, 2, "pt"),
+                                           plot.margin = margin(4, 12, 0, 2, "pt"),
                                            axis.text.x = element_text(color = "black", size = tamano2),
                                            axis.text.y = element_text(color = "black", size = tamano2),
                                            strip.text.x = element_text(size = tamano, color = "black"),
@@ -88,7 +88,7 @@ PPM_select <- c("Condition", "year", "PPM")
 PPM_frame <- data[, ..PPM_select]
 colnames(PPM_frame) <- c("Condition", "Year", "value")
 PPM_frame <- PPM_frame[is.infinite(value) != TRUE]
-PPM_frame$value <- PPM_frame$value*100   
+#PPM_frame$value <- PPM_frame$value*100   
 
 #Summary
 PPM_summary_gruops <- summarySE(PPM_frame, measurevar = "value",
@@ -112,7 +112,7 @@ PPM <- ggplot() +
   scale_fill_manual(values = pa) +
   th + xlab("") + ylab("PPM") +
   #scale_y_continuous(breaks = c(0, 0.4, 0.8)) +
-  coord_cartesian(xlim = c(0.5, 3.5), ylim = c(0.01, 0.18), expand = FALSE)
+  coord_cartesian(xlim = c(0.5, 3.5), ylim = c(0, 0.8), expand = FALSE)
   
 
 #VCV --------------------------------------

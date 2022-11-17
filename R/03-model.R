@@ -41,7 +41,7 @@ data_2021 <- data[year == "2021"]
 
 table(data_2019$Condition) 
 #Dead Healthy  Wilted 
-#1127    1139    955 
+#1120    1177    998 
 
 #Subset for splitting
 healthy <- subset(data_2019,  Condition == "Healthy")
@@ -228,7 +228,7 @@ variance_training <- function(data_model, threads = 26, repeats = 10) {
       registerDoParallel(cl)
     }
     
-    tune <- expand.grid(C = 1)
+    tune <- expand.grid(C = 0.7)
     ml_model <- train(Condition ~ ., data = data_model, 
                       method= "svmLinear", 
                       trControl = cfitControl,

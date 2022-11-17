@@ -19,7 +19,7 @@ source("R/00-model_predict.R")
 
 #-------------------------------------------------------------------------------
 # Root path
-path <- "/media/antonio/antonio_ssd/FORCE/corregistration/application"
+path <- "/media/antonio/antonio_ssd/TRAINING"
 path <- "F:/TRAINING"
 
 #-------------------------------------------------------------------------------
@@ -33,7 +33,7 @@ path <- "F:/TRAINING"
 root_path <- paste0(path, "/level3_lsf")
 models <- readRDS("data/models/final_model.rds")
 out_path <- paste0(path, "/level4")
-threads <- 2
+threads <- 16
 
 apply_model(root_path, models, out_paths, threads)
 
@@ -82,9 +82,9 @@ apply_model <- function(root_path, models, out_paths, threads) {
   unique_tile <- unique(frame$tile)
   
   # Set up cluster
-  cl <- makeCluster(threads, type = "FORK")
-  registerDoParallel(cl)
-  
+  #cl <- makeCluster(threads, type = "FORK")
+  #registerDoParallel(cl)
+  i <- 1
   # Loop over scenes to estimate kNDVI
   for(i in 1:nrow(unique_tile) {
     
