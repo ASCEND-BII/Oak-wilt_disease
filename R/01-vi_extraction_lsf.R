@@ -19,14 +19,13 @@ library(terra)
 #' @param out_path: path and name of the .txt outputs
 #' @param threads: the number of threads to use for parallel processing
 
-path <- "/media/antonio/antonio_ssd/TRAINING"
-
-root_path <- paste0(path, "/level3_lsf/X0014_Y0024")
-vector_path <- paste0(path, "/OBSERVATIONS/2018_AVIRIS-NG/X0014_Y0024_aviris.gpkg")
-out_path <- paste0(path, "/level3_lsf-pixels/X0014_Y0024_AVIRIS_lsf.txt")
-year = 2018 
+path <- "/media/antonio/Work/Projects/Oak-wilt_mapping"
+root_path <- paste0(path, "/level3_application/X0014_Y0024")
+vector_path <- paste0(path, "/Training/2019/Points_training/X0014_Y0024.gpkg")
+out_path <- paste0(path, "/level3_pixel-extraction/X0014_Y0024.txt")
+year = c(2019, 2018) 
 tile = "X0014_Y0024"
-vi_extraction(root_path, vector_path, out_path)
+vi_extraction(root_path, vector_path, out_path, year, tile)
 
 #-------------------------------------------------------------------------------
 #Arguments
@@ -59,6 +58,18 @@ vi_extraction <- function(root_path, vector_path, out_path, year, tile) {
   #Order 
   frame <- frame[order(VI, metric)]
   
+  #Get normalized mask for normalization
+  kNDVI_frame <- subset(frame, VI == "KNV" & metric == "VPS")
+  
+  #Current
+  mask_VPS <- rast(paste0(root_path, "/", kNDVI_frame$scene[1]))
+  mask_VPS <- subset(mask_VPS, paste0("YEAR-", year[1]))
+  mask_VPS[mask_VPS < 4000] <- 0
+  mask_VPS[mask_VPS >= 4000] <- 1
+  
+  #Order 
+  frame <- frame[order(VI, metric)]
+  
   #N scenes
   n_scenes <- nrow(frame)
   
@@ -69,7 +80,7 @@ vi_extraction <- function(root_path, vector_path, out_path, year, tile) {
     
     #Read
     VI <- rast(paste0(root_path, "/", frame$scene[i]))
-    years <- c(paste0("YEAR-", year), paste0("YEAR-", (year-1)))
+    years <- c(paste0("YEAR-", year)) #, paste0("YEAR-", (year-1))
     VI <- subset(VI, years)
     
     #Extract values
@@ -77,49 +88,61 @@ vi_extraction <- function(root_path, vector_path, out_path, year, tile) {
                       vector, 
                       method = "simple",
                       xy = TRUE)
+    colnames(values) <- c("ID", "target_year_value", "previus_year_value", "x", "y")
+
+    values$VI <- frame$VI[i]
+    values$metric <- frame$metric[i]
+    values$target_year <- year[1]
     
-    values_melted <- melt(as.data.table(values), 
-                          id.vars = c("ID", "x", "y"), 
-                          variable.name = "date",
-                          value.name = "value")
+    #Get normalization
+    to_normalize <- mask(VI, mask_VPS, maskvalues = 0)
     
-    values_melted$VI <- frame$VI[i]
-    values_melted$metric <- frame$metric[i]
-    values_melted$YOI <- year
+    #Target
+    target_infinite <- is.infinite(to_normalize[][,1])
+    target_year_mean <- mean(to_normalize[][,1][!target_infinite], na.rm = TRUE)
+    target_year_sd <- sd(to_normalize[][,1][!target_infinite], na.rm = TRUE)
     
-    #Remove residuals
-    rm(list = c("VI", "values"))
-    gc()
+    #Previous
+    previous_infinite <- is.infinite(to_normalize[][,2])
+    previous_year_mean <- mean(to_normalize[][,2][!previous_infinite], na.rm = TRUE)
+    previous_year_sd <- sd(to_normalize[][,2][!previous_infinite], na.rm = TRUE)
+    
+    #Add information to frame
+    values$target_year_mean <- target_year_mean
+    values$target_year_sd <- target_year_sd
+    values$previous_year_mean <- previous_year_mean
+    values$previous_year_sd <- previous_year_sd
     
     #Return
-    extraction <- rbind(extraction, values_melted)
+    extraction <- rbind(extraction, values)
     
   }
   
-  #Change names
-  colnames(extraction) <- c("ID", "x", "y", "observation", "value", "VI", "metric", "YOI")
+  # Change col names
+  arrenge_col <- c("ID", "x", "y", "target_year", "VI", "metric", 
+                   "target_year_value", "target_year_mean", "target_year_sd",
+                   "previus_year_value", "previous_year_mean", "previous_year_sd")
+  extraction <- extraction[, ..arrenge_col]
   
   #Prepare vector to merge
-  area <- expanse(vector)
   vector <- as.data.frame(vector)
   vector$ID <- 1:nrow(vector)
   vector <- as.data.table(vector)
   vector$tile <- tile
-  #vector$area <- area
   
   #Merge
   complete <- merge(vector, extraction, by = "ID", all.x = TRUE, all.y = TRUE)
   
   #Add names
   complete[condition == "1", Condition := "Healthy"]
-  complete[condition == "2", Condition := "Wilted"]
+  complete[condition == "2", Condition := "Symptomatic"]
   complete[condition == "3", Condition := "Dead"]
   
   #Order complete
-  complete <- complete[, c("tile", "ID", "Condition", "x", "y", "YOI", "observation", "VI", "metric", "value")]
-  
-  #Modify year
-  complete$observation <- as.numeric(substr(complete$observation, 6, 9))
+  arrenge_col2 <- c("tile", "ID", "Condition", "x", "y", "target_year", "VI", "metric", 
+                    "target_year_value", "target_year_mean", "target_year_sd",
+                    "previus_year_value", "previous_year_mean", "previous_year_sd")
+  complete <- complete[, ..arrenge_col2]
   
   #Export
   fwrite(complete, out_path, sep = "\t")
@@ -166,58 +189,58 @@ tile = "X0016_Y0024"
 vi_extraction(root_path, vector_path, out_path, year, tile)
 
 #' NAIP 2019
-root_path <- paste0(path, "/level3_lsf/X0014_Y0024")
-vector_path <- paste0(path, "/OBSERVATIONS/2019_NAIP/X0014_Y0024/X0014_Y0024.gpkg")
-out_path <- paste0(path, "/level3_lsf-pixels/NAIP_2019/X0014_Y0024_2019_lsf.txt")
-year = 2019 
+root_path <- paste0(path, "/level3_application/X0014_Y0024")
+vector_path <- paste0(path, "/Training/2019/Points_training/X0014_Y0024.gpkg")
+out_path <- paste0(path, "/level3_pixel-extraction/X0014_Y0024.txt")
+year = c(2019, 2018) 
 tile = "X0014_Y0024"
 vi_extraction(root_path, vector_path, out_path, year, tile)
 
-root_path <- paste0(path, "/level3_lsf/X0015_Y0024")
-vector_path <- paste0(path, "/OBSERVATIONS/2019_NAIP/X0015_Y0024/X0015_Y0024.gpkg")
-out_path <- paste0(path, "/level3_lsf-pixels/NAIP_2019/X0015_Y0024_2019_lsf.txt")
-year = 2019 
+root_path <- paste0(path, "/level3_application/X0015_Y0024")
+vector_path <- paste0(path, "/Training/2019/Points_training/X0015_Y0024.gpkg")
+out_path <- paste0(path, "/level3_pixel-extraction/X0015_Y0024.txt")
+year = c(2019, 2018) 
 tile = "X0015_Y0024"
 vi_extraction(root_path, vector_path, out_path, year, tile)
 
-root_path <- paste0(path, "/level3_lsf/X0016_Y0024")
-vector_path <- paste0(path, "/OBSERVATIONS/2019_NAIP/X0016_Y0024/X0016_Y0024.gpkg")
-out_path <- paste0(path, "/level3_lsf-pixels/NAIP_2019/X0016_Y0024_2019_lsf.txt")
-year = 2019 
+root_path <- paste0(path, "/level3_application/X0016_Y0024")
+vector_path <- paste0(path, "/Training/2019/Points_training/X0016_Y0024.gpkg")
+out_path <- paste0(path, "/level3_pixel-extraction/X0016_Y0024.txt")
+year = c(2019, 2018) 
 tile = "X0016_Y0024"
 vi_extraction(root_path, vector_path, out_path, year, tile)
 
-root_path <- paste0(path, "/level3_lsf/X0016_Y0025")
-vector_path <- paste0(path, "/OBSERVATIONS/2019_NAIP/X0016_Y0025/X0016_Y0025.gpkg")
-out_path <- paste0(path, "/level3_lsf-pixels/NAIP_2019/X0016_Y0025_2019_lsf.txt")
-year = 2019 
+root_path <- paste0(path, "/level3_application/X0016_Y0025")
+vector_path <- paste0(path, "/Training/2019/Points_training/X0016_Y0025.gpkg")
+out_path <- paste0(path, "/level3_pixel-extraction/X0016_Y0025.txt")
+year = c(2019, 2018) 
 tile = "X0016_Y0025"
 vi_extraction(root_path, vector_path, out_path, year, tile)
 
-root_path <- paste0(path, "/level3_lsf/X0016_Y0027")
-vector_path <- paste0(path, "/OBSERVATIONS/2019_NAIP/X0016_Y0027/X0016_Y0027.gpkg")
-out_path <- paste0(path, "/level3_lsf-pixels/NAIP_2019/X0016_Y0027_2019_lsf.txt")
-year = 2019 
+root_path <- paste0(path, "/level3_application/X0016_Y0027")
+vector_path <- paste0(path, "/Training/2019/Points_training/X0016_Y0027.gpkg")
+out_path <- paste0(path, "/level3_pixel-extraction/X0016_Y0027.txt")
+year = c(2019, 2018) 
 tile = "X0016_Y0027"
 vi_extraction(root_path, vector_path, out_path, year, tile)
 
-root_path <- paste0(path, "/level3_lsf/X0017_Y0024")
-vector_path <- paste0(path, "/OBSERVATIONS/2019_NAIP/X0017_Y0024/X0017_Y0024.gpkg")
-out_path <- paste0(path, "/level3_lsf-pixels/NAIP_2019/X0017_Y0024_2019_lsf.txt")
-year = 2019 
+root_path <- paste0(path, "/level3_application/X0017_Y0024")
+vector_path <- paste0(path, "/Training/2019/Points_training/X0017_Y0024.gpkg")
+out_path <- paste0(path, "/level3_pixel-extraction/X0017_Y0024.txt")
+year = c(2019, 2018) 
 tile = "X0017_Y0024"
 vi_extraction(root_path, vector_path, out_path, year, tile)
 
-root_path <- paste0(path, "/level3_lsf/X0017_Y0026")
-vector_path <- paste0(path, "/OBSERVATIONS/2019_NAIP/X0017_Y0026/X0017_Y0026.gpkg")
-out_path <- paste0(path, "/level3_lsf-pixels/NAIP_2019/X0017_Y0026_2019_lsf.txt")
-year = 2019 
+root_path <- paste0(path, "/level3_application/X0017_Y0026")
+vector_path <- paste0(path, "/Training/2019/Points_training/X0017_Y0026.gpkg")
+out_path <- paste0(path, "/level3_pixel-extraction/X0017_Y0026.txt")
+year = c(2019, 2018) 
 tile = "X0017_Y0026"
 vi_extraction(root_path, vector_path, out_path, year, tile)
 
-root_path <- paste0(path, "/level3_lsf/X0017_Y0027")
-vector_path <- paste0(path, "/OBSERVATIONS/2019_NAIP/X0017_Y0027/X0017_Y0027.gpkg")
-out_path <- paste0(path, "/level3_lsf-pixels/NAIP_2019/X0017_Y0027_2019_lsf.txt")
-year = 2019 
+root_path <- paste0(path, "/level3_application/X0017_Y0027")
+vector_path <- paste0(path, "/Training/2019/Points_training/X0017_Y0027.gpkg")
+out_path <- paste0(path, "/level3_pixel-extraction/X0017_Y0027.txt")
+year = c(2019, 2018) 
 tile = "X0017_Y0027"
 vi_extraction(root_path, vector_path, out_path, year, tile)
