@@ -15,7 +15,6 @@ library(ggplot2)
 #-------------------------------------------------------------------------------
 #Path
 path <- "/media/antonio/Work/Projects/Oak-wilt_mapping/level3_pixel-extraction"
-path <- "F:/TRAINING/level3_lsf-pixels"
 
 #-------------------------------------------------------------------------------
 # Compile observations
@@ -43,18 +42,57 @@ for(i in 1:nrow(frame)) {
 
 }
 
-data <- na.exclude(data)
+fwrite(data, paste0(path, "/master_file.csv"))
 
 #Normalize and reshape ---------------------------------------------------------
+frame <- data
+
+
+
+
+
+
+
+
+
+
+
 
 #Normalized values
-data_normalized <- data
-data_normalized$target_normalized <- (data_normalized$target_year_value-data_normalized$target_year_mean)/data_normalized$target_year_sd
-data_normalized$previus_normalized <- (data_normalized$previus_year_value-data_normalized$previous_year_mean)/data_normalized$previous_year_sd
-data_normalized$difference_normalized <- data_normalized$target_normalized - data_normalized$previus_normalized
+data <- frame
+data$target_normalized <- (data$target_year_value-data$target_year_mean)/data$target_year_sd
+data$previus_normalized <- (data$previus_year_value-data$previous_year_mean)/data$previous_year_sd
+data$difference_normalized <- data$target_normalized - data$previus_normalized
+
+data$difference <- (data$target_year_value - data$previus_year_value) - data$difference_mean 
+
+data$difference_normalized <- (data$difference - data$difference_mean) / data$difference_sd
+data$proportion <- data$difference  / data$target_year_value
+
+data$proportion_normalized <- (data$proportion - data$proportion_mean)  / data$proportion_sd
+
 
 #Reshape frame
-#data <- dcast(data, tile + sensor + ID + x + y + year + Condition ~ metric)
+kepp <- c("tile", "ID", "Condition", "x", "y", "dataset", "VI",  "metric", "target_year_value")
+data <- data[, ..kepp]
+
+data_dcast <- dcast(data, tile + ID + Condition + x + y + dataset + VI ~ metric)
+data_dcast <- data_dcast[VI == "CCI"]
+data_dcast <- na.exclude(data_dcast)
+data_dcast$Condition <- as.factor(data_dcast$Condition)
+data_dcast$Condition <- factor(data_dcast$Condition, levels = c("Healthy", "Symptomatic", "Dead"))
+
+fwrite(data_dcast, paste0(path, "/master_training.csv"))
+
+
+data_dcast$VSS_zs <- (data_dcast$VSS - data_dcast$VGM)/data_dcast$VGA
+data_dcast$VMS_zs <- (data_dcast$VMS - data_dcast$VGM)/data_dcast$VGA
+data_dcast$VPS_zs <- (data_dcast$VPS - data_dcast$VGM)/data_dcast$VGA
+data_dcast$VES_zs <- (data_dcast$VES - data_dcast$VGM)/data_dcast$VGA
+data_dcast$VGM_zs <- (data_dcast$VGM - data_dcast$VGM)/data_dcast$VGA
+data_dcast$VPE <- (data_dcast$VPS - data_dcast$VGM)/data_dcast$VGA
+
+
 data <- dcast(data, tile + sensor + ID + x + y + date + Condition + VI ~ metric)
 data[, sensor := strsplit(sensor, "_")[[1]][1], by = seq_along(1:nrow(data))]
 
