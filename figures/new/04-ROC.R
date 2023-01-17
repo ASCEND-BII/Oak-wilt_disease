@@ -12,16 +12,86 @@ library(ggplot2)
 library(ggpubr)
 library(multiROC)
 
+#-------------------------------------------------------------------------------
+# Get model of interest
+rocs <- fread("data/models/rocs.csv")
+
+#-------------------------------------------------------------------------------
+# Interpolate sensitivity and specificity
+
+roc_interpolation <- function(rocs) {
+  
+  rocs$observations <- paste0(rocs$type, "_", 
+                              rocs$year, "_", 
+                              rocs$tile, "_", 
+                              rocs$Condition, "_",
+                              rocs$repedition)
+  
+  times <- unique(rocs$observations)
+  
+  #Sequence to interpolate
+  spec <- seq(0, 1, by = 0.001)
+  
+  #Result collector
+  results <- data.table()
+  
+  for(i in 1:length(times)) {
+    
+    sub_roc <- subset(rocs, observations == times[i])
+    
+    interpolate <- approx(x = 1 - sub_roc$Specificity, 
+                          y = sub_roc$Sensitivity, 
+                          xout = spec, 
+                          method= "linear",
+                          yleft = 0,
+                          yright = 1)
+    
+    sub_results <- data.table(type = rep(sub_roc$type[1], length(spec)),
+                              year = rep(sub_roc$year[1], length(spec)),
+                              tile = rep(sub_roc$tile[1], length(spec)),
+                              Condition = rep(sub_roc$Condition[1], length(spec)),
+                              AUC = rep(sub_roc$AUC[1], length(spec)),
+                              Specificity = interpolate$x,
+                              Sensitivity = interpolate$y)
+    
+    results <- rbind(results, sub_results)
+    
+  }
+  
+  return(results)
+  
+}
+
+#-------------------------------------------------------------------------------
+# Arrange the ROC for visualization
+
+# Interpolate
+interpolated_roc <- roc_interpolation(rocs)
+
+# Get the mean
+mean_roc <- interpolated_roc[, .(Sensitivity = mean(Sensitivity), AUC = mean(AUC)), 
+                             by = c("type", "year", "tile", "Condition", "Specificity")]
+
+mean_roc$Condition <- as.factor(mean_roc$Condition)
+mean_roc$Condition <- factor(mean_roc$Condition, levels = c("Healthy", "Symptomatic", "Dead", "Macro", "Micro"))
+
+mean_roc$tile <- as.factor(mean_roc$tile)
+mean_roc$tile <- factor(mean_roc$tile, levels = c("All",
+                                                  "X0014_Y0024",
+                                                  "X0015_Y0024",
+                                                  "X0016_Y0024",
+                                                  "X0017_Y0024",
+                                                  "X0016_Y0025",
+                                                  "X0017_Y0026",
+                                                  "X0016_Y0027"))
 
 #Layout properties -------------------------------------------------------------
 
-#pa <- c("#1b9e77", "#d95f02", "#7570b3")
-pa <- c("#1b9e77", "#d95f02", "#7570b3", "#FF0000", "#2c7fb8")
 tamano <- 14
 tamano2 <- 12
 
 th <- theme_bw(base_size = tamano) + theme(plot.background = element_blank(),
-                                           panel.grid.major = element_blank(),
+                                           #panel.grid.major = element_blank(),
                                            panel.grid.minor = element_blank(),
                                            plot.margin = margin(5, 6, 5, 5, "pt"),
                                            axis.text.x = element_text(color = "black", size = tamano2),
@@ -30,100 +100,52 @@ th <- theme_bw(base_size = tamano) + theme(plot.background = element_blank(),
                                            strip.text.y = element_text(size = tamano, color = "black"),
                                            strip.background = element_rect(color= "black", fill="grey90", linetype="solid"))
 
-#-------------------------------------------------------------------------------
-# Root path
-
-path <- "F:/TRAINING/level3_lsf-pixels"
-path <- "/media/antonio/antonio_ssd/TRAINING/level3_lsf-pixels"
-
 #Plot --------------------------------------------------------------------------
+# Spatial variation
 
-# Get model of interest
-models <- readRDS("data/models/models.rds")
-SVM <- models$SVM
+data_spatial <- mean_roc[tile != "All"]
+data_spatial <- data_spatial[type == "Testing"]
 
-# Get testing datasets
-training_2019 <- fread(paste0(path, "/training_2019.csv"))
-testing_2019 <- fread(paste0(path, "/testing_2019.csv"))
-data <- fread(paste0(path, "/master_training.csv"))
-testing_2018 <- subset(data, year == 2018)
-testing_2021 <- subset(data, year == 2021)
 
-#Names for training
-names <-  c("Condition", "PPM", "VGM", "VCV", "IFR")
-
-#Predict observations
-#2018
-predict_2018 <- predict(SVM, testing_2018[, ..names], type = 'prob') 
-colnames(predict_2018) <- paste(colnames(predict_2019), "_pred_2018")
-
-true_label_2018 <- dummies::dummy(testing_2018$Condition, sep = ".")
-true_label_2018 <- data.frame(true_label_2018)
-colnames(true_label_2018) <- gsub(".*?\\.", "", colnames(true_label_2018))
-colnames(true_label_2018) <- paste(colnames(true_label_2018), "_true")
-final_2018 <- cbind(true_label_2018, predict_2018)
-
-roc_res_2018 <- multi_roc(final_2018, force_diag=T)
-plot_roc_2018 <- plot_roc_data(roc_res_2018)
-colnames(plot_roc_2018)[3] <- "Condition"
-plot_roc_2018$Condition <- factor(plot_roc_2018$Condition, levels = c("Healthy ", "Wilted ", "Dead ", "Macro", "Micro"))
-
-plot_2018 <- ggplot(plot_roc_2018, aes(x = 1-Specificity, y=Sensitivity)) +
-  geom_path(aes(color = Condition, linetype = Condition), size= 0.6) +
+plot <- ggplot(data_spatial, aes(x = Specificity, y=Sensitivity, colour = tile)) +
+  geom_path(aes(color = tile), size = 0.4) +
   geom_segment(aes(x = 0, y = 0, xend = 1, yend = 1), 
                colour='grey', linetype = 'dotted') +
-  scale_color_manual(values = pa) +
-  scale_linetype_manual(values = c("solid", "solid", "solid", "dotted", "dotted")) +
+  xlab("1 - Specificity") +
   th + 
   scale_x_continuous(limits = c(-0.01, 1.01), expand = c(0, 0)) +
-  scale_y_continuous(limits = c(-0.01, 1.05), expand = c(0, 0))
+  scale_y_continuous(limits = c(-0.01, 1.05), expand = c(0, 0)) +
+  scale_colour_viridis_d("Tile", option = "inferno", direction = -1) +
+  facet_wrap(. ~ Condition)
+  
 
-#2019
-predict_2019 <- predict(SVM, testing_2019[, ..names], type = 'prob') 
-colnames(predict_2019) <- paste(colnames(predict_2019), "_pred_2019")
+jpeg("figures/spatial_roc.jpeg", quality = 100, res = 600, width = 240, height = 125, units = "mm", pointsize = 12) # JPEG device
 
-true_label_2019 <- dummies::dummy(testing_2019$Condition, sep = ".")
-true_label_2019 <- data.frame(true_label_2019)
-colnames(true_label_2019) <- gsub(".*?\\.", "", colnames(true_label_2019))
-colnames(true_label_2019) <- paste(colnames(true_label_2019), "_true")
-final_2019 <- cbind(true_label_2019, predict_2019)
+plot
 
-roc_res_2019 <- multi_roc(final_2019, force_diag=T)
-plot_roc_2019 <- plot_roc_data(roc_res_2019)
-colnames(plot_roc_2019)[3] <- "Condition"
-plot_roc_2019$Condition <- factor(plot_roc_2019$Condition, levels = c("Healthy ", "Wilted ", "Dead ", "Macro", "Micro"))
+dev.off()
 
-plot_2019 <- ggplot(plot_roc_2019, aes(x = 1-Specificity, y=Sensitivity)) +
-  geom_path(aes(color = Condition, linetype = Condition), size= 0.6) +
+
+# Temporal variation
+
+data_temporal <- mean_roc[tile == "All"]
+data_temporal <- data_temporal[type == "Testing"]
+data_temporal$year <- as.factor(data_temporal$year)
+data_temporal$year <- factor(data_temporal$year, levels = c("2018", "2019", "2021"))
+
+plot <- ggplot(data_temporal, aes(x = Specificity, y=Sensitivity, colour = year)) +
+  geom_path(aes(color = year), size = 0.4) +
   geom_segment(aes(x = 0, y = 0, xend = 1, yend = 1), 
                colour='grey', linetype = 'dotted') +
-  scale_color_manual(values = pa) +
-  scale_linetype_manual(values = c("solid", "solid", "solid", "dotted", "dotted")) +
+  xlab("1 - Specificity") +
   th + 
   scale_x_continuous(limits = c(-0.01, 1.01), expand = c(0, 0)) +
-  scale_y_continuous(limits = c(-0.01, 1.05), expand = c(0, 0))
+  scale_y_continuous(limits = c(-0.01, 1.05), expand = c(0, 0)) +
+  scale_colour_manual("Year", values = c("#4575b4", "grey40", "#d73027")) +
+  facet_wrap(. ~ Condition)
 
-#2021
-predict_2021 <- predict(SVM, testing_2021[, ..names], type = 'prob') 
-colnames(predict_2021) <- paste(colnames(predict_2019), "_pred_2021")
+jpeg("figures/temporal_roc.jpeg", quality = 100, res = 600, width = 240, height = 125, units = "mm", pointsize = 12) # JPEG device
 
-true_label_2021 <- dummies::dummy(testing_2021$Condition, sep = ".")
-true_label_2021 <- data.frame(true_label_2021)
-colnames(true_label_2021) <- gsub(".*?\\.", "", colnames(true_label_2021))
-colnames(true_label_2021) <- paste(colnames(true_label_2021), "_true")
-final_2021 <- cbind(true_label_2021, predict_2021)
+plot
 
-roc_res_2021 <- multi_roc(final_2021, force_diag=T)
-plot_roc_2021 <- plot_roc_data(roc_res_2021)
-colnames(plot_roc_2021)[3] <- "Condition"
-plot_roc_2021$Condition <- factor(plot_roc_2021$Condition, levels = c("Healthy ", "Wilted ", "Dead ", "Macro", "Micro"))
-
-plot_2021 <- ggplot(plot_roc_2021, aes(x = 1-Specificity, y=Sensitivity)) +
-  geom_path(aes(color = Condition, linetype = Condition), size= 0.6) +
-  geom_segment(aes(x = 0, y = 0, xend = 1, yend = 1), 
-               colour='grey', linetype = 'dotted') +
-  scale_color_manual(values = pa) +
-  scale_linetype_manual(values = c("solid", "solid", "solid", "dotted", "dotted")) +
-  th + 
-  scale_x_continuous(limits = c(-0.01, 1.01), expand = c(0, 0)) +
-  scale_y_continuous(limits = c(-0.01, 1.05), expand = c(0, 0))
+dev.off()
