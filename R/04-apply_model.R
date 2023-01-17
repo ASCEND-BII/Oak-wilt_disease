@@ -1,16 +1,15 @@
 ################################################################################
-##### 06 - Predict models
+##### 04 - Predict models
 ################################################################################
 
-#' @description Batch for prediction of the models in the dVI scenes.
+#' @description Batch for prediction of the models using the LSP scenes.
 
 #-------------------------------------------------------------------------------
 # Libraries
 
 library(data.table)
 library(terra)
-library(doParallel)
-library(foreach)
+library(parallel)
 
 #-------------------------------------------------------------------------------
 # Source code
@@ -19,8 +18,7 @@ source("R/00-model_predict.R")
 
 #-------------------------------------------------------------------------------
 # Root path
-path <- "/media/antonio/antonio_ssd/TRAINING"
-path <- "F:/TRAINING"
+path <- "/media/antonio/Work/Projects/Oak-wilt_mapping"
 
 #-------------------------------------------------------------------------------
 #Arguments
@@ -30,7 +28,7 @@ path <- "F:/TRAINING"
 #' @param out_path: path and name of the .txt outputs
 #' @param threads: the number of threads to use for parallel processing
 
-root_path <- paste0(path, "/level3_lsf")
+root_path <- paste0(path, "/level3_application")
 models <- readRDS("data/models/final_model.rds")
 out_path <- paste0(path, "/level4")
 threads <- 16
@@ -62,17 +60,13 @@ apply_model <- function(root_path, models, out_paths, threads) {
   #Get method
   frame[, metric := substr(strsplit(scene, "_")[[1]][7], 1, 3), by = seq_along(1:nrow(frame))]
   
-  #Subset VI
-  #frame <- frame[VI == "CCI"]
   frame <- frame[order(tile, metric)]
   
   #Subset metric
   frame <- subset(frame, metric == "VSS" |
-                         metric == "IFR" |
                          metric == "VGM" |
                          metric == "VGV" |
-                         metric == "VPS" |
-                         metric == "VEV")
+                         metric == "VPS")
   
   #Get date
   date <- rast(paste0(root_path, "/", files[1]))
@@ -81,13 +75,9 @@ apply_model <- function(root_path, models, out_paths, threads) {
   #Get unique tiles
   unique_tile <- unique(frame$tile)
   
-  # Set up cluster
-  #cl <- makeCluster(threads, type = "FORK")
-  #registerDoParallel(cl)
-  i <- 3
-  # Loop over scenes to estimate kNDVI
-  for(i in 1:nrow(unique_tile) {
-    
+  #Creates function
+  application <- function(i, frame, models) {
+  
     sub_frame <- frame[tile == unique_tile[i]]
     
     #Read scenes -------------------
@@ -95,11 +85,6 @@ apply_model <- function(root_path, models, out_paths, threads) {
     VSS <- rast(paste0(root_path, "/",
                        VSS$tile[1], "/", 
                        VSS$scene[1]))
-    
-    IFR <- sub_frame[metric == "IFR" & VI == "CCI"]
-    IFR <- rast(paste0(root_path, "/",
-                       IFR$tile[1], "/", 
-                       IFR$scene[1]))
     
     VGM <- sub_frame[metric == "VGM" & VI == "CCI"]
     VGM <- rast(paste0(root_path, "/",
@@ -111,79 +96,104 @@ apply_model <- function(root_path, models, out_paths, threads) {
                        VGV$tile[1], "/", 
                        VGV$scene[1]))
     
-    VPS <- sub_frame[metric == "VPS" & VI == "CCI"]
+    VPS <- sub_frame[metric == "VPS" & VI == "KNV"]
     VPS <- rast(paste0(root_path, "/",
                        VPS$tile[1], "/", 
                        VPS$scene[1]))
     
-    KNDVI <- sub_frame[metric == "VSS" & VI == "KNV"]
-    KNDVI <- rast(paste0(root_path, "/",
-                         KNDVI$tile[1], "/", 
-                         KNDVI$scene[1]))
-    
     for(j in 1:length(date)) {
       
       #Mask KNDVI
-      mask <- KNDVI[date[j]]
-      mask[mask < 3500] <- 0
-      mask[mask >= 3500] <- 1
+      mask <- VPS[date[j]]
+      mask[mask < 4000] <- 0
+      mask[mask >= 4000] <- 1
       
-      #Create stack
+      #Get VCV
       VCV <- VGV[date[j]]/VGM[date[j]]
       VCV[VCV == Inf] <- NA
-      PPM <- (VPS[date[j]]-VGM[date[j]])/VGM[date[j]]
-      PPM[PPM == Inf] <- NA
       
-      scene <- c(PPM,
-                 VSS[date[j]],
-                 VCV,
-                 IFR[date[j]])
+      #Get values per mask
+      vss <- mask(VSS[date[j]], mask, maskvalues = 0)
+      vgv <- mask(VGV[date[j]], mask, maskvalues = 0)
+      vcv <- mask(VCV, mask, maskvalues = 0)
       
-      names(scene) <- c("PPM", "VSS", "VCV", "IFR")
+      #Get normalization values
+      vss_mean <- mean(vss[], na.rm = TRUE)
+      vgv_mean <- mean(vgv[], na.rm = TRUE)
+      vcv_mean <- mean(vcv[], na.rm = TRUE)
       
-      #Mask stack
-      scene <- mask(scene, mask, maskvalues = 0)
+      vss_sd <- sd(vss[], na.rm = TRUE)
+      vgv_sd <- sd(vgv[], na.rm = TRUE)
+      vcv_sd <- sd(vcv[], na.rm = TRUE)
       
-      #LDA Model application -----------------------------
-      predictions <- predict(scene, model = models$SVM_5, 
-                             type = "prob", cores = 4, 
-                             na.rm = TRUE, cpkgs = c("caret"))
+      #Apply z-score normalization
+      vss <- (VSS[date[j]] - vss_mean)/vss_sd
+      vgv <- (VGV[date[j]] - vgv_mean)/vgv_sd
+      vcv <- (VCV - vcv_mean)/vcv_sd
       
+      #Change names
+      names(vss) <- "VSS"
+      names(vgv) <- "VGV"
+      names(vcv) <- "VCV"
       
-      writeRaster(predictions, "cedar_2021.tif")
-      
-      #Export model
-      export_mean <- paste0(out_path, "/", 
-                            sub_frame$tile[1], "/",
-                            date[j], "_predicted_mean.tif")
+      #Stack scene
+      scene <- c(vss,
+                 vgv,
+                 vcv)
 
-      export_sd <- paste0(out_path, "/", 
-                          sub_frame$tile[1], "/",
-                          date[j], "_predicted_SD.tif")
+      #Apply models and get uncertainties
+      predictions <- model_predict(scene, models)
+      
+      #Export name
+      export_predicted <- paste0(out_path, "/", 
+                                 sub_frame$tile[1], "/",
+                                 date[j], "_predicted.tif")
+
+      export_uncertainty <- paste0(out_path, "/", 
+                                   sub_frame$tile[1], "/",
+                                   date[j], "_uncertainty.tif")
       
       #Export
-      writeRaster(x = predicted_mean,
-                  filename = export_name,
+      writeRaster(x = round(predictions$Predicted*10000, 0),
+                  filename = export_predicted,
                   names = c("Healthy", "Symptomatic", "Dead"),
-                  NAflag = 0,
+                  NAflag = NA,
                   overwrite= TRUE)
       
-      writeRaster(x = predicted_sd,
-                  filename = export_name,
+      writeRaster(x = round(predictions$Uncertainty*10000, 0),
+                  filename = export_uncertainty,
                   names = c("Healthy", "Symptomatic", "Dead"),
-                  NAflag = 0,
+                  NAflag = NA,
                   overwrite= TRUE)
       
-      gc()
+      
+      #Remove residuals
+      rm(list = c("mask", "VCV", 
+                  "vss", "vgv", "vcv",
+                  "vss_mean", "vgv_mean", "vcv_mean",
+                  "vss_sd", "vgv_sd", "vcv_sd",
+                  "scene", "predictions",
+                  "export_predicted", "export_uncertainty"))
       
     }
     
     #Remove residuals
-    #rm(list = c("scene", "healthy", "wilted", "dead",
-    #            "kNDVI", "predicted", "export_name"))
-                          
-                          
+    rm(list = c("sub_frame", "VSS", 
+                "VGM", "VGV", "VPS"))
+    gc()
+    
+    return(NA)
+    
   }
   
+  # Parallel
+  mclapply(1:length(unique_tile), 
+           FUN = application, 
+           frame = frame, 
+           models = models, 
+           mc.cores = 16,
+           mc.preschedule = TRUE,
+           mc.cleanup = TRUE,
+           )
   
 }
