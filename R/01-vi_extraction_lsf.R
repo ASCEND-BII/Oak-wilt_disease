@@ -2,8 +2,7 @@
 ##### 03 - Extraction for pixels from L3 products
 ################################################################################
 
-#' @description Batch extraction of values of VI using a vector file 
-#' for training.
+#' @description Batch extraction of pixels from LSP scenes using a vector file.
 
 #-------------------------------------------------------------------------------
 # Libraries
@@ -20,11 +19,11 @@ library(terra)
 #' @param threads: the number of threads to use for parallel processing
 
 path <- "/media/antonio/Work/Projects/Oak-wilt_mapping"
-root_path <- paste0(path, "/level3_application/X0014_Y0024")
-vector_path <- paste0(path, "/Training/2019/Points_training/X0014_Y0024.gpkg")
-out_path <- paste0(path, "/level3_pixel-extraction/X0014_Y0024.txt")
-year = c(2019, 2018) 
-tile = "X0014_Y0024"
+root_path <- paste0(path, "/level3_application/X0017_Y0027")
+vector_path <- paste0(path, "/Training/2019/Points_training/X0017_Y0027.gpkg")
+out_path <- paste0(path, "/level3_pixel-extraction/X0017_Y0027.txt")
+year = c(2019) 
+tile = "X0017_Y0027"
 vi_extraction(root_path, vector_path, out_path, year, tile)
 
 #-------------------------------------------------------------------------------
@@ -50,22 +49,22 @@ vi_extraction <- function(root_path, vector_path, out_path, year, tile) {
   
   #Get VI
   frame[, VI := strsplit(scene, "_")[[1]][6], by = seq_along(1:nrow(frame))]
-  frame <- subset(frame, VI == "KNV" | VI == "CCI")
   
   #Get method
   frame[, metric := substr(strsplit(scene, "_")[[1]][7], 1, 3), by = seq_along(1:nrow(frame))]
   
   #Order 
   frame <- frame[order(VI, metric)]
+  frame <- frame[VI == "CCI"]
   
   #Get normalized mask for normalization
-  kNDVI_frame <- subset(frame, VI == "KNV" & metric == "VPS")
+  VI_mask <- subset(frame, VI == "CCI" & metric == "VSS")
   
   #Current
-  mask_VPS <- rast(paste0(root_path, "/", kNDVI_frame$scene[1]))
-  mask_VPS <- subset(mask_VPS, paste0("YEAR-", year[1]))
-  mask_VPS[mask_VPS < 4000] <- 0
-  mask_VPS[mask_VPS >= 4000] <- 1
+  VI_mask <- rast(paste0(root_path, "/", VI_mask$scene[1]))
+  VI_mask <- subset(VI_mask, paste0("YEAR-", year[1]))
+  VI_mask[VI_mask < 2500] <- 0
+  VI_mask[VI_mask >= 2500] <- 1
   
   #Order 
   frame <- frame[order(VI, metric)]
@@ -88,30 +87,28 @@ vi_extraction <- function(root_path, vector_path, out_path, year, tile) {
                       vector, 
                       method = "simple",
                       xy = TRUE)
-    colnames(values) <- c("ID", "target_year_value", "previus_year_value", "x", "y")
-
+    colnames(values) <- c("ID", "value", "x", "y")
+    
     values$VI <- frame$VI[i]
     values$metric <- frame$metric[i]
-    values$target_year <- year[1]
+    values$year <- year[1]
     
     #Get normalization
-    to_normalize <- mask(VI, mask_VPS, maskvalues = 0)
+    to_normalize <- mask(VI, VI_mask, maskvalues = 0)
     
     #Target
     target_infinite <- is.infinite(to_normalize[][,1])
-    target_year_mean <- mean(to_normalize[][,1][!target_infinite], na.rm = TRUE)
-    target_year_sd <- sd(to_normalize[][,1][!target_infinite], na.rm = TRUE)
-    
-    #Previous
-    previous_infinite <- is.infinite(to_normalize[][,2])
-    previous_year_mean <- mean(to_normalize[][,2][!previous_infinite], na.rm = TRUE)
-    previous_year_sd <- sd(to_normalize[][,2][!previous_infinite], na.rm = TRUE)
+    year_mean <- mean(to_normalize[][,1][!target_infinite], na.rm = TRUE)
+    year_sd <- sd(to_normalize[][,1][!target_infinite], na.rm = TRUE)
+    year_density <- density(to_normalize[][,1][!target_infinite], 
+                            na.rm = TRUE,
+                            n = 1000)
+    year_density <- year_density$x[which.max(year_density$y)]
     
     #Add information to frame
-    values$target_year_mean <- target_year_mean
-    values$target_year_sd <- target_year_sd
-    values$previous_year_mean <- previous_year_mean
-    values$previous_year_sd <- previous_year_sd
+    values$scene_mean <- year_mean
+    values$scene_sd <- year_sd
+    values$scene_peak <- year_density
     
     #Return
     extraction <- rbind(extraction, values)
@@ -119,9 +116,8 @@ vi_extraction <- function(root_path, vector_path, out_path, year, tile) {
   }
   
   # Change col names
-  arrenge_col <- c("ID", "x", "y", "target_year", "VI", "metric", 
-                   "target_year_value", "target_year_mean", "target_year_sd",
-                   "previus_year_value", "previous_year_mean", "previous_year_sd")
+  arrenge_col <- c("ID", "x", "y", "year", "VI", "metric", 
+                   "value", "scene_mean", "scene_sd", "scene_peak")
   extraction <- extraction[, ..arrenge_col]
   
   #Prepare vector to merge
@@ -139,9 +135,8 @@ vi_extraction <- function(root_path, vector_path, out_path, year, tile) {
   complete[condition == "3", Condition := "Dead"]
   
   #Order complete
-  arrenge_col2 <- c("tile", "ID", "Condition", "x", "y", "target_year", "VI", "metric", 
-                    "target_year_value", "target_year_mean", "target_year_sd",
-                    "previus_year_value", "previous_year_mean", "previous_year_sd")
+  arrenge_col2 <- c("tile", "ID", "Condition", "x", "y", "VI", "metric", 
+                    "value", "scene_mean", "scene_sd", "scene_peak")
   complete <- complete[, ..arrenge_col2]
   
   #Export
@@ -151,96 +146,119 @@ vi_extraction <- function(root_path, vector_path, out_path, year, tile) {
 
 #' @example 
 #' 
-#' AVIRIS-NG 2018
-root_path <- paste0(path, "/level3_lsf/X0014_Y0024")
-vector_path <- paste0(path, "/OBSERVATIONS/2018_AVIRIS-NG/X0014_Y0024_aviris.gpkg")
-out_path <- paste0(path, "/level3_lsf-pixels/AVIRIS-NG_2018/X0014_Y0024_2018_lsf.txt")
-year = 2018 
+#' Hyspect 2018
+
+# Becker
+root_path <- paste0(path, "/level3_application/X0014_Y0024")
+vector_path <- paste0(path, "/Training/2018/Points_training/Becker_2018.gpkg")
+out_path <- paste0(path, "/level3_pixel-extraction/Becker_2018.txt")
+year = c(2018) 
 tile = "X0014_Y0024"
 vi_extraction(root_path, vector_path, out_path, year, tile)
 
-root_path <- paste0(path, "/level3_lsf/X0015_Y0024")
-vector_path <- paste0(path, "/OBSERVATIONS/2018_AVIRIS-NG/X0015_Y0024_aviris.gpkg")
-out_path <- paste0(path, "/level3_lsf-pixels/AVIRIS-NG_2018/X0015_Y0024_2018_lsf.txt")
-year = 2018 
+# Cantlin
+root_path <- paste0(path, "/level3_application/X0015_Y0024")
+vector_path <- paste0(path, "/Training/2018/Points_training/Cantlin_2018.gpkg")
+out_path <- paste0(path, "/level3_pixel-extraction/Cantlin_2018.txt")
+year = c(2018) 
 tile = "X0015_Y0024"
 vi_extraction(root_path, vector_path, out_path, year, tile)
 
-root_path <- paste0(path, "/level3_lsf/X0016_Y0024")
-vector_path <- paste0(path, "/OBSERVATIONS/2018_AVIRIS-NG/X0016_Y0024_aviris.gpkg")
-out_path <- paste0(path, "/level3_lsf-pixels/AVIRIS-NG_2018/X0016_Y0024_2018_lsf.txt")
-year = 2018 
+# Long Pong
+root_path <- paste0(path, "/level3_application/X0015_Y0024")
+vector_path <- paste0(path, "/Training/2018/Points_training/Long-Pond_2018.gpkg")
+out_path <- paste0(path, "/level3_pixel-extraction/Long-Pond_2018.txt")
+year = c(2018) 
+tile = "X0015_Y0024"
+vi_extraction(root_path, vector_path, out_path, year, tile)
+
+# Palm-St
+root_path <- paste0(path, "/level3_application/X0016_Y0024")
+vector_path <- paste0(path, "/Training/2018/Points_training/Palm-St_2018.gpkg")
+out_path <- paste0(path, "/level3_pixel-extraction/Palm-St_2018.txt")
+year = c(2018) 
 tile = "X0016_Y0024"
 vi_extraction(root_path, vector_path, out_path, year, tile)
 
-root_path <- paste0(path, "/level3_lsf/X0017_Y0024")
-vector_path <- paste0(path, "/OBSERVATIONS/2018_AVIRIS-NG/X0017_Y0024_aviris.gpkg")
-out_path <- paste0(path, "/level3_lsf-pixels/AVIRIS-NG_2018/X0017_Y0024_2018_lsf.txt")
-year = 2018 
+# Cedar
+root_path <- paste0(path, "/level3_application/X0016_Y0024")
+vector_path <- paste0(path, "/Training/2018/Points_training/Cedar_2018.gpkg")
+out_path <- paste0(path, "/level3_pixel-extraction/Cedar_2018.txt")
+year = c(2018) 
+tile = "X0016_Y0024"
+vi_extraction(root_path, vector_path, out_path, year, tile)
+
+# Stacy
+root_path <- paste0(path, "/level3_application/X0017_Y0024")
+vector_path <- paste0(path, "/Training/2018/Points_training/Stacy_2018.gpkg")
+out_path <- paste0(path, "/level3_pixel-extraction/Stacy_2018.txt")
+year = c(2018) 
 tile = "X0017_Y0024"
-vi_extraction(root_path, vector_path, out_path, year, tile)
-
-#' AVIRIS-NG 2021
-root_path <- paste0(path, "/level3_lsf/X0016_Y0024")
-vector_path <- paste0(path, "/OBSERVATIONS/2021_AVIRIS-NG/X0016_Y0024_aviris.gpkg")
-out_path <- paste0(path, "/level3_lsf-pixels/AVIRIS-NG_2021/X0016_Y0024_2021_lsf.txt")
-year = 2021 
-tile = "X0016_Y0024"
 vi_extraction(root_path, vector_path, out_path, year, tile)
 
 #' NAIP 2019
 root_path <- paste0(path, "/level3_application/X0014_Y0024")
 vector_path <- paste0(path, "/Training/2019/Points_training/X0014_Y0024.gpkg")
 out_path <- paste0(path, "/level3_pixel-extraction/X0014_Y0024.txt")
-year = c(2019, 2018) 
+year = c(2019) 
 tile = "X0014_Y0024"
 vi_extraction(root_path, vector_path, out_path, year, tile)
 
 root_path <- paste0(path, "/level3_application/X0015_Y0024")
 vector_path <- paste0(path, "/Training/2019/Points_training/X0015_Y0024.gpkg")
 out_path <- paste0(path, "/level3_pixel-extraction/X0015_Y0024.txt")
-year = c(2019, 2018) 
+year = c(2019)
 tile = "X0015_Y0024"
 vi_extraction(root_path, vector_path, out_path, year, tile)
 
 root_path <- paste0(path, "/level3_application/X0016_Y0024")
 vector_path <- paste0(path, "/Training/2019/Points_training/X0016_Y0024.gpkg")
 out_path <- paste0(path, "/level3_pixel-extraction/X0016_Y0024.txt")
-year = c(2019, 2018) 
+year = c(2019)
 tile = "X0016_Y0024"
 vi_extraction(root_path, vector_path, out_path, year, tile)
 
 root_path <- paste0(path, "/level3_application/X0016_Y0025")
 vector_path <- paste0(path, "/Training/2019/Points_training/X0016_Y0025.gpkg")
 out_path <- paste0(path, "/level3_pixel-extraction/X0016_Y0025.txt")
-year = c(2019, 2018) 
+year = c(2019)
 tile = "X0016_Y0025"
 vi_extraction(root_path, vector_path, out_path, year, tile)
 
 root_path <- paste0(path, "/level3_application/X0016_Y0027")
 vector_path <- paste0(path, "/Training/2019/Points_training/X0016_Y0027.gpkg")
 out_path <- paste0(path, "/level3_pixel-extraction/X0016_Y0027.txt")
-year = c(2019, 2018) 
+year = c(2019)
 tile = "X0016_Y0027"
 vi_extraction(root_path, vector_path, out_path, year, tile)
 
 root_path <- paste0(path, "/level3_application/X0017_Y0024")
 vector_path <- paste0(path, "/Training/2019/Points_training/X0017_Y0024.gpkg")
 out_path <- paste0(path, "/level3_pixel-extraction/X0017_Y0024.txt")
-year = c(2019, 2018) 
+year = c(2019)
 tile = "X0017_Y0024"
 vi_extraction(root_path, vector_path, out_path, year, tile)
 
 root_path <- paste0(path, "/level3_application/X0017_Y0026")
 vector_path <- paste0(path, "/Training/2019/Points_training/X0017_Y0026.gpkg")
 out_path <- paste0(path, "/level3_pixel-extraction/X0017_Y0026.txt")
-year = c(2019, 2018) 
+year = c(2019)
 tile = "X0017_Y0026"
 vi_extraction(root_path, vector_path, out_path, year, tile)
 
 root_path <- paste0(path, "/level3_application/X0017_Y0027")
 vector_path <- paste0(path, "/Training/2019/Points_training/X0017_Y0027.gpkg")
 out_path <- paste0(path, "/level3_pixel-extraction/X0017_Y0027.txt")
-year = c(2019, 2018) 
+year = c(2019)
 tile = "X0017_Y0027"
+vi_extraction(root_path, vector_path, out_path, year, tile)
+
+#' Hyspect 2021
+
+# Cedar
+root_path <- paste0(path, "/level3_application/X0016_Y0024")
+vector_path <- paste0(path, "/Training/2021/Points_training/Cedar_2021.gpkg")
+out_path <- paste0(path, "/level3_pixel-extraction/Cedar_2021.txt")
+year = c(2021) 
+tile = "X0016_Y0024"
 vi_extraction(root_path, vector_path, out_path, year, tile)

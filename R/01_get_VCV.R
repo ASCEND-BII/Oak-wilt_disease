@@ -1,11 +1,8 @@
 ################################################################################
-##### Estimation of kNGRDI 
+##### Estimation of VCV 
 ################################################################################
 
-#-------------------------------------------------------------------------------
-# Source load
-
-source("R/00-path_vi_scenes.R")
+#' @description A function to estimate value of coefficient of variance.
 
 #-------------------------------------------------------------------------------
 # Libraries
@@ -51,11 +48,10 @@ get_VCV <- function(root_path) {
   frame[, metric := substr(strsplit(scene, "_")[[1]][7], 1, 3), by = seq_along(1:nrow(frame))]
   
   # Get metrics and VI of interest
-  frame <- subset(frame, VI == "CCI")
   frame <- subset(frame, metric == "VGV" | metric == "VGM")
   
   #Unique date and tile
-  frame[, unique := .GRP, by=.(tile)]
+  frame[, unique := .GRP, by=.(tile, VI)]
   
   #N scenes
   n_scenes <- uniqueN(frame$unique)

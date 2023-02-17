@@ -7,9 +7,12 @@
 
 library(data.table)
 library(caret)
+library(CAST)
 library(doParallel)
-library(ggplot2)
-library(viridis)
+
+#-------------------------------------------------------------------------------
+# Source code
+source("R/00-data_split.R")
 
 #-------------------------------------------------------------------------------
 # Root path
@@ -19,9 +22,8 @@ path <- "/media/antonio/Work/Projects/Oak-wilt_mapping/level3_pixel-extraction"
 #-------------------------------------------------------------------------------
 # Reading and cleaning
 
-#Reading -------------
-data <- fread(paste0(path, "/master_training_normalized.csv"))
-data <- na.exclude(data)
+#Read
+data <- fread(paste0(path, "/master_normalized.csv"))
 
 #As factors
 data$Condition <- as.factor(data$Condition)
@@ -39,42 +41,14 @@ data_2021 <- data[dataset == "2021"]
 
 # n of samples
 table(data_2019$tile) 
-#X0014_Y0024 X0015_Y0024 X0016_Y0024 X0016_Y0025 X0016_Y0027 X0017_Y0024 X0017_Y0026 
-#897         1178        937         218         96          238         77 
+#X0014_Y0024 X0015_Y0024 X0016_Y0024 X0016_Y0025 X0016_Y0027 X0017_Y0024 X0017_Y0026 X0017_Y0027
+#895         1176        937         218         96          238         101                 107
 
 table(data_2019$Condition) 
 #Dead Healthy  Wilted 
-#1224    1194    1223 
+#1267    1234    1267 
 
-datasplit_tile <- function(frame, training = 0.6) {
-  
-  frame <- frame
-  frame$sample <- 1:nrow(frame)
-  tiles <- unique(frame$tile)
-  to_training <- as.numeric()
-  
-  for(i in 1:length(tiles)) {
-    
-    x_tile <- subset(frame, tile == tiles[i])
-    min_samples <- min(table(x_tile$Condition))
-    min_samples <- floor(min_samples * training)
-    
-    healthy <- subset(x_tile, Condition == "Healthy")
-    symptomatic <- subset(x_tile, Condition == "Symptomatic")
-    dead <- subset(x_tile, Condition == "Dead")
-    
-    healthy <- healthy[sample(1:nrow(healthy), min_samples), sample]
-    symptomatic <- symptomatic[sample(1:nrow(symptomatic), min_samples), sample]
-    dead <- dead[sample(1:nrow(dead), min_samples), sample]
-    
-    to_training <- c(to_training, healthy, symptomatic, dead)
-    
-  }
-  
-  return(to_training)
-  
-}
-
+#Data split
 split <- datasplit_tile(frame = data_2019, training = 0.6)
 
 #Datasplit 
@@ -86,68 +60,49 @@ fwrite(condition_training, paste0(path, "/training_2019.csv"))
 fwrite(condition_testing, paste0(path, "/testing_2019.csv"))
 
 #-------------------------------------------------------------------------------
-# Create a function of spatial fold
-spatial_folds <- function(frame = condition_training, training = 0.80) {
+# Function for Model 
+
+#Create folds and split -----------------------
+#Model collectors
+data_split <- list()
+data_folds <- list()
+
+#N of iterations
+repeated <- 100
+
+#Proportion of data split
+prop <- 0.8
+
+for(i in 1:repeated) {
   
-  frame <- frame
-  frame$sample <- 1:nrow(frame)
-  tiles <- unique(frame$tile)
+  #Split
+  split <- datasplit_tile(condition_training, prop)
   
-  folds <- list()
+  #Folds
+  folds <- CreateSpacetimeFolds(x = condition_training[split],
+                                spacevar = "tile", 
+                                k = 8,
+                                seed = sample(1:10000, 1))
   
-  for(i in 1:length(tiles)) {
-    
-    #Get the minimum of samples
-    exclude <- subset(frame, tile != tiles[i])
-    min_samples <- exclude[, .N, by = c("tile", "Condition")]
-    min_samples <- min(min_samples$N)
-    min_samples <- ceiling(min_samples * training)
-    
-    #Get a vector to keep folds
-    to_training <- as.integer()
-    
-    #Tile of interest
-    tiles_of_interest <- unique(exclude$tile)
-    
-    for(j in 1:length(tiles_of_interest)) {
-      
-      #Select tile
-      x_tile <- subset(exclude, tile == tiles_of_interest[j])
-      
-      #Subset per condition
-      healthy <- subset(x_tile, Condition == "Healthy")
-      symptomatic <- subset(x_tile, Condition == "Symptomatic")
-      dead <- subset(x_tile, Condition == "Dead")
-      
-      #Samples
-      healthy <- healthy[sample(1:nrow(healthy), min_samples), sample]
-      symptomatic <- symptomatic[sample(1:nrow(symptomatic), min_samples), sample]
-      dead <- dead[sample(1:nrow(dead), min_samples), sample]
-      
-      to_training <- c(to_training, healthy, symptomatic, dead)
-      
-    }
-    
-    folds[[i]] <- to_training
-    
-  }
+  #Collect
+  data_split[[i]] <- split
+  data_folds[[i]] <- folds
   
-  names(folds) <- paste0("Fold", 1:length(folds))
-  
-  return(folds)
+  #Residuals
+  rm(list = c("split", "folds"))
   
 }
 
-#-------------------------------------------------------------------------------
-# Function for Model 
-
-model_training <- function(data_model, 
-                           repeated = 100, 
+model_training <- function(data, 
+                           col_names = c("Condition", "VSS", "VGV", "VCV"),
                            model, 
                            tune = NULL, 
+                           repeated = 100,
+                           data_split = data_split,
+                           data_folds = data_folds,
                            threads = 4) {
   
-  #Model collection
+  #Model collector
   model_collector <- list()
   
   #Progress bar
@@ -164,12 +119,11 @@ model_training <- function(data_model,
     #Progress
     setTxtProgressBar(pb, i)
     
-    #Folds
-    folds <- spatial_folds(frame = condition_training)
+    folds <- data_folds[[i]]$index
     
-    #Repeated 7-fold spatial cross-validation
+    #Repeated 8-fold spatial cross-validation
     cfitControl <- trainControl(method = "cv",
-                                number = 7,
+                                number = 8,
                                 index = folds,
                                 classProbs = TRUE,
                                 savePredictions = TRUE)
@@ -177,17 +131,16 @@ model_training <- function(data_model,
     #No tune
     if(is.null(tune)) {
       
-      ml_model <- train(Condition ~ ., data = data_model, 
+      ml_model <- train(Condition ~ ., 
+                        data = data[data_split[[i]], ..col_names], 
                         method = model, 
-                        #preProcess = c("center", "scale"),
                         trControl = cfitControl)
-      
-      
+
     } else { #Use tune
       
-      ml_model <- train(Condition ~ ., data = data_model, 
+      ml_model <- train(Condition ~ ., 
+                        data = data[data_split[[i]], ..col_names], 
                         method= model, 
-                        #preProcess = c("center", "scale"),
                         trControl = cfitControl,
                         tuneGrid = tune)
       
@@ -200,6 +153,7 @@ model_training <- function(data_model,
   #Stop parallel
   if(threads > 1) {
     stopCluster(cl)
+    Sys.sleep(2)
     gc()
   }
   
@@ -214,71 +168,71 @@ model_training <- function(data_model,
 condition_training <- fread(paste0(path, "/training_2019.csv"))
 condition_testing <- fread(paste0(path, "/testing_2019.csv"))
 
-#Names for training
-names <-  c("Condition", "VSS", "VGV", "VCV")
-data_model <- condition_training[, ..names]
+predictors <- c("Condition", "VSS", "VES", "VCV")
 
 #Run LDA
-lda <- model_training(data_model, 
-                      repeated = 100,
+lda <- model_training(data = condition_training,
+                      col_names = predictors,
                       model = "lda", 
-                      tune = NULL, 
-                      threads = 8)
+                      tune = NULL,
+                      repeated = 100,
+                      data_split = data_split,
+                      data_folds = data_folds,
+                      threads = 1)
 
 #Run QDA
-qda <- model_training(data_model, 
-                      repeated = 100,
+qda <- model_training(data = condition_training,
+                      col_names = predictors,
                       model = "qda", 
-                      tune = NULL, 
-                      threads = 8)
+                      tune = NULL,
+                      repeated = 100,
+                      data_split = data_split,
+                      data_folds = data_folds,
+                      threads = 1)
 
 #Run RF
 rf_tune <- expand.grid(mtry = c(1:10))
-rf <- model_training(data_model, 
-                     repeated = 100,
-                     model = "rf", 
+rf <- model_training(data = condition_training,
+                     col_names = predictors,
+                     model = "rf",
                      tune = rf_tune,
+                     repeated = 100,
+                     data_split = data_split,
+                     data_folds = data_folds,
                      threads = 28)
 
 #Run PLSD
 pls_tune <- expand.grid(ncomp = c(1:3))
-pls <- model_training(data_model, 
-                      repeated = 100,
+pls <- model_training(data = condition_training,
+                      col_names = predictors, 
                       model = "pls", 
                       tune = pls_tune,
-                      threads = 4)
+                      repeated = 100,
+                      data_split = data_split,
+                      data_folds = data_folds,
+                      threads = 24)
 
 #Run svmLinear
 svmLinear_tune <- expand.grid(C = seq(0.1, 2, by = 0.1))
-svmLinear <- model_training(data_model, 
-                            repeated = 100,
+svmLinear <- model_training(data = condition_training,
+                            col_names = predictors,
                             model = "svmLinear", 
                             tune = svmLinear_tune,
-                            threads = 28)
-
-#Run Naive bayes
-NB <- model_training(data_model, 
-                     repeated = 100,
-                     model = "nb", 
-                     tune = NULL,
-                     threads = 28)
+                            repeated = 100,
+                            data_split = data_split,
+                            data_folds = data_folds,
+                            threads = 24)
 
 #Run knn
-knn_tune <- expand.grid(k = c(1:80))
-knn <- model_training(data_model, 
-                      repeated = 100,
-                      model = "knn", 
+knn_tune <- expand.grid(k = c(1:100))
+knn <- model_training(data = condition_training,
+                      col_names = predictors,
+                      model = "knn",
                       tune = knn_tune,
-                      threads = 28)
-
-#Run nnet
-nnet_tune <- expand.grid(size = seq(from = 1, to = 20, by = 1),
-                         decay = seq(from = 0.1, to = 2, by = 0.1))
-nnet <- model_training(data_model, 
-                       repeated = 10,
-                       model = "nnet", 
-                       tune = nnet_tune,
-                       threads = 28)
+                      repeated = 100,
+                      data_split = data_split,
+                      data_folds = data_folds,
+                      threads = 24)
 
 #Create a list of models
 models <- list(LDA = lda, 
@@ -286,9 +240,7 @@ models <- list(LDA = lda,
                RF = rf, 
                PLSD = pls, 
                SVM = svmLinear, 
-               NB = NB,
-               KNN = knn, 
-               NNET = nnet)
+               KNN = knn)
 
 #-------------------------------------------------------------------------------
 # Get best tuning parameter to re-run
@@ -339,70 +291,85 @@ best_tuning <- function(models) {
 #Explore best models
 best <- best_tuning(models)
 
+#Mode function
+find_mode <- function(x) {
+  u <- unique(x)
+  tab <- tabulate(match(x, u))
+  u[tab == max(tab)]
+}
+
+#Get the mode
+best[, find_mode(Tune_1), by = "Model"]
+
+#Export best turning
+fwrite(best, "data/best-turning.csv")
+
 #-------------------------------------------------------------------------------
 # Re-run models
 
 #Run LDA
-lda <- model_training(data_model, 
-                      repeated = 100,
+lda <- model_training(data = condition_training,
+                      col_names = predictors,
                       model = "lda", 
-                      tune = NULL, 
-                      threads = 8)
+                      tune = NULL,
+                      repeated = 100,
+                      data_split = data_split,
+                      data_folds = data_folds,
+                      threads = 1)
 
 #Run QDA
-qda <- model_training(data_model, 
-                      repeated = 100,
+qda <- model_training(data = condition_training,
+                      col_names = predictors,
                       model = "qda", 
-                      tune = NULL, 
-                      threads = 8)
+                      tune = NULL,
+                      repeated = 100,
+                      data_split = data_split,
+                      data_folds = data_folds,
+                      threads = 1)
 
 #Run RF
 rf_tune <- expand.grid(mtry = 1) #mtry equal to 1 seems to be the best
-rf <- model_training(data_model, 
-                     repeated = 100,
-                     model = "rf", 
+rf <- model_training(data = condition_training,
+                     col_names = predictors,
+                     model = "rf",
                      tune = rf_tune,
+                     repeated = 100,
+                     data_split = data_split,
+                     data_folds = data_folds,
                      threads = 28)
 
 #Run PLSD
-pls_tune <- expand.grid(ncomp = 2) #ncomp equal to 2 seems to be the best
-pls <- model_training(data_model, 
-                      repeated = 100,
+pls_tune <- expand.grid(ncomp = 3) #ncomp equal to 3 seems to be the best
+pls <- model_training(data = condition_training,
+                      col_names = predictors, 
                       model = "pls", 
                       tune = pls_tune,
-                      threads = 4)
+                      repeated = 100,
+                      data_split = data_split,
+                      data_folds = data_folds,
+                      threads = 3)
 
 #Run svmLinear
-svmLinear_tune <- expand.grid(C = 1.5) #C equal to 1.5 seems to be the best 
-svmLinear <- model_training(data_model, 
-                            repeated = 100,
+svmLinear_tune <- expand.grid(C = 0.5) #C equal to 0.5 seems to be the best 
+svmLinear <- model_training(data = condition_training,
+                            col_names = predictors,
                             model = "svmLinear", 
                             tune = svmLinear_tune,
-                            threads = 28)
-
-#Run Naive bayes
-NB <- model_training(data_model, 
-                     repeated = 100,
-                     model = "nb", 
-                     tune = NULL,
-                     threads = 28)
+                            repeated = 100,
+                            data_split = data_split,
+                            data_folds = data_folds,
+                            threads = 24)
 
 #Run knn
-knn_tune <- expand.grid(k = 44) #k equal to 44 seems to be the best 
-knn <- model_training(data_model, 
-                      repeated = 100,
-                      model = "knn", 
+knn_tune <- expand.grid(k = 34) #k equal to 34 seems to be the best 
+knn <- model_training(data = condition_training,
+                      col_names = predictors,
+                      model = "knn",
                       tune = knn_tune,
-                      threads = 28)
-
-#Run nnet
-nnet_tune <- expand.grid(size = 15, #size equal to 15 seems to be the best 
-                         decay = 1.21) #decay equal to 1.21 seems to be the best
-nnet <- model_training(data_model, 
-                       repeated = 100,
-                       model = "nnet", 
-                       tune = nnet_tune,
-                       threads = 28)
+                      repeated = 100,
+                      data_split = data_split,
+                      data_folds = data_folds,
+                      threads = 34)
 
 #Create a list of models
 models <- list(LDA = lda, 
@@ -410,12 +377,7 @@ models <- list(LDA = lda,
                RF = rf, 
                PLSD = pls, 
                SVM = svmLinear, 
-               NB = NB,
-               KNN = knn, 
-               NNET = nnet)
-
-#Export all model
-saveRDS(models, "data/models/models.rds")
+               KNN = knn)
 
 #-------------------------------------------------------------------------------
 # Training Performance
@@ -516,16 +478,14 @@ testing_performance <- function(models,
 #-------------------------------------------------------------------------------
 #Validate models
 
-models <- readRDS("data/models/models.rds")
-
 training_2019 <- training_performance(models = models, 
-                                      dataset = condition_training[, ..names], 
+                                      dataset = condition_training[, ..predictors], 
                                       type = "Training",
                                       year = 2019,
                                       tile = "All")
 
 testing_2019 <- testing_performance(models = models, 
-                                    dataset = condition_testing[, ..names], 
+                                    dataset = condition_testing[, ..predictors], 
                                     type = "Testing",
                                     year = 2019,
                                     tile = "All")
@@ -535,3 +495,6 @@ models_results <- rbind(training_2019, testing_2019[, c(1:7)])
 
 #This is the file of results for figure 4
 fwrite(models_results, "data/models_selection.csv")
+
+#Export all model
+saveRDS(models, "data/models/models.rds")
