@@ -253,9 +253,9 @@ apply_model <- function(root_path,
 #' @example  
 
 root_path <- paste0(path, "/level3_application")
-healthy <- fread("data/models/coef-healthy.csv")
-symtomatic <- fread("data/models/coef-symtomatic.csv")
-dead <- fread("data/models/coef-dead.csv")
+healthy <- fread("data/coef-healthy.csv")
+symtomatic <- fread("data/coef-symtomatic.csv")
+dead <- fread("data/coef-dead.csv")
 years <- 2017:2022
 out_path <- paste0(path, "/level4")
 threads <- 16
