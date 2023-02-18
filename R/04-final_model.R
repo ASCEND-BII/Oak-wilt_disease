@@ -2,6 +2,9 @@
 ##### 03 - Final model (LDA)
 ################################################################################
 
+#' @description A script for extracting important metrics of performance and 
+#' coefficients in the final selected model.
+
 #-------------------------------------------------------------------------------
 # Libraries
 

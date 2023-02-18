@@ -1,8 +1,8 @@
 ################################################################################
-##### 03 - Plot of the classification assesement
+##### 03 - Plot of the classification assessment
 ################################################################################
 
-#' @description A script for ploting the comparison of polar metrics.
+#' @description A script for ploting the comparison of ROC curves.
 
 #-------------------------------------------------------------------------------
 #' Libraries
@@ -30,7 +30,7 @@ roc_interpolation <- function(rocs) {
   times <- unique(rocs$observations)
   
   #Sequence to interpolate
-  spec <- seq(0, 1, by = 0.01)
+  spec <- seq(-0.3, 1.3, by = 0.01)
   
   #Result collector
   results <- data.table()
@@ -77,6 +77,7 @@ roc_interpolation <- function(rocs) {
 
 # Interpolate (time consuming)
 interpolated_roc <- roc_interpolation(rocs)
+fwrite(interpolated_roc, "data/models/interpolated_roc.csv")
 
 # Get summary
 mean_roc <- interpolated_roc[, .(Sensitivity = mean(Sensitivity), AUC = mean(AUC)), 
@@ -129,7 +130,7 @@ plot <- ggplot(data_spatial, aes(x = Specificity, y=Sensitivity, colour = tile))
   scale_x_continuous(limits = c(-0.01, 1.01), expand = c(0, 0.01)) +
   scale_y_continuous(limits = c(-0.01, 1.05), expand = c(0, 0)) +
   scale_colour_viridis_d("Tile", option = "inferno", direction = -1) +
-  facet_wrap(. ~ Condition) 
+  facet_wrap(. ~ Condition) +
   theme(legend.position="none")
   
 
@@ -156,10 +157,10 @@ plot <- ggplot(data_temporal, aes(x = Specificity, y=Sensitivity, colour = year)
   scale_x_continuous(limits = c(-0.01, 1.01), expand = c(0, 0)) +
   scale_y_continuous(limits = c(-0.01, 1.05), expand = c(0, 0)) +
   scale_colour_manual("Year", values = c("#4575b4", "grey40", "#d73027")) +
-  facet_wrap(. ~ Condition) 
+  facet_wrap(. ~ Condition) +
   theme(legend.position="none")
 
-jpeg("figures/atemporal_roc.jpeg", quality = 100, res = 600, width = 240, height = 125, units = "mm", pointsize = 12) # JPEG device
+jpeg("figures/temporal_roc.jpeg", quality = 100, res = 600, width = 240, height = 125, units = "mm", pointsize = 12) # JPEG device
 
 plot
 
