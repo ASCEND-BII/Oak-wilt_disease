@@ -45,8 +45,6 @@ vignettes/*.pdf
 *.tiff
 
 #ASCII files
-*.csv
-*.txt
 
 #.db file
 .db
