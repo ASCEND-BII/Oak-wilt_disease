@@ -258,7 +258,7 @@ symtomatic <- fread("/panfs/jay/groups/17/cavender/shared/oak-wilt/misc/R/Oak-wi
 dead <- fread("/panfs/jay/groups/17/cavender/shared/oak-wilt/misc/R/Oak-wilt/data/coef-dead.csv")
 years <- 2017:2022
 out_path <- "/panfs/jay/groups/17/cavender/shared/oak-wilt/level4"
-threads <- 16
+threads <- 64
 
 apply_model(root_path, 
             healthy, 
