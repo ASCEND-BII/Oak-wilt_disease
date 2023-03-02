@@ -42,6 +42,9 @@ apply_model <- function(root_path,
                         dead,
                         threads) {
   
+  #--------------------------------------------------------
+  # Selection and arrangement of files
+  
   #Search for VI paths
   files <- list.files(path = root_path, 
                       pattern = ".tif", 

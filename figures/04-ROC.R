@@ -15,6 +15,7 @@ library(multiROC)
 #-------------------------------------------------------------------------------
 # Get model of interest
 rocs <- fread("data/models/rocs.csv")
+cutoffs <- fread("data/models/cutoffs.csv")
 
 #-------------------------------------------------------------------------------
 # Interpolate sensitivity and specificity
@@ -77,7 +78,7 @@ roc_interpolation <- function(rocs) {
 
 # Interpolate (time consuming)
 interpolated_roc <- roc_interpolation(rocs)
-fwrite(interpolated_roc, "data/models/interpolated_roc.csv")
+fwrite(interpolated_roc, "data/models/rocs-interpolated.csv")
 
 # Get summary
 mean_roc <- interpolated_roc[, .(Sensitivity = mean(Sensitivity), AUC = mean(AUC)), 
@@ -98,6 +99,11 @@ mean_roc$tile <- factor(mean_roc$tile, levels = c("All",
                                                   "X0017_Y0026",
                                                   "X0016_Y0027",
                                                   "X0017_Y0027"))
+
+#-------------------------------------------------------------------------------
+# Summarize cutoff values
+
+
 
 #Layout properties -------------------------------------------------------------
 

@@ -1,5 +1,5 @@
 ################################################################################
-##### 03 - Final model (LDA)
+##### 03 - Final model assesement (PLSD)
 ################################################################################
 
 #' @description A script for extracting important metrics of performance and 
@@ -395,7 +395,7 @@ results_cutoff <- rbind(training_2019_roc$cutoff,
                         X0017_Y0026_2019_roc$cutoff,
                         X0017_Y0027_2019_roc$cutoff)
 
-fwrite(results_roc, "data/models/cutoffs.csv")
+fwrite(results_cutoff, "data/models/cutoffs.csv")
 
 #-------------------------------------------------------------------------------
 # Extraction of the PLSD coefficients (Function)
