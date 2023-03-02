@@ -185,7 +185,7 @@ apply_model <- function(root_path,
       
       predictions <- as.data.table(predictions)
       colnames(predictions) <- c("Healthy", "Symtomatic", "Dead", 
-                                 "sd-healthy", "sd-symtomatic", "sd-dead")
+                                 "amp-healthy", "amp-symtomatic", "amp-dead")
       predictions$cell <- scene_frame[nas != TRUE, cell]
       
       #Merge predictions and scene_frame
@@ -211,7 +211,7 @@ apply_model <- function(root_path,
       writeRaster(x = scene_predictions,
                   filename = export_predicted,
                   names = c("Healthy", "Symtomatic", "Dead", 
-                            "sd-healthy", "sd-symtomatic", "sd-dead"),
+                            "amp-healthy", "amp-symtomatic", "amp-dead"),
                   NAflag = -9999,
                   overwrite= TRUE,
                   datatype = "INT4S")
