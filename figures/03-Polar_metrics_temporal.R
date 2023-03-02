@@ -107,11 +107,11 @@ VES <- plot_LSP(frame = VES_frame,
 VCV_select <- c("Condition", "dataset", "VCV")
 VCV_frame <- data[, ..VCV_select]
 colnames(VCV_frame) <- c("Condition", "Year", "value")
-VCV_frame$value <- VCV_frame$value/10000
+VCV_frame$value <- VCV_frame$value/1000
 
 VCV <- plot_LSP(frame = VCV_frame, 
-                limits = c(0, 0.07), 
-                breaks = c(0, 0.03, 0.06), 
+                limits = c(0, 0.7), 
+                breaks = c(0, 0.3, 0.6), 
                 label = "VCV")
 
 
