@@ -88,6 +88,10 @@ get_VCV <- function(root_path, threads = 16) {
                 NAflag = -9999,
                 datatype = "INT2S")
     
+    #Remove residuals
+    rm(list = c("tile", "VGV", "VGM", "exp_name", "export_name"))
+    Sys.sleep(2)
+    
   }
   
   # Parallel
@@ -95,8 +99,8 @@ get_VCV <- function(root_path, threads = 16) {
            FUN = application, 
            frame = frame, 
            mc.cores = threads,
-           mc.preschedule = TRUE,
-           mc.cleanup = TRUE)
+           mc.preschedule = FALSE,
+           mc.cleanup = FALSE)
 
 }
 

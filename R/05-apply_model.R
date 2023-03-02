@@ -244,8 +244,8 @@ apply_model <- function(root_path,
            coef_dead,
            eval_years,
            mc.cores = 16,
-           mc.preschedule = TRUE,
-           mc.cleanup = TRUE)
+           mc.preschedule = FALSE,
+           mc.cleanup = FALSE)
   
 }
 
