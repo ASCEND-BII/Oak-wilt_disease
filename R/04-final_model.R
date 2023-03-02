@@ -12,6 +12,11 @@ library(data.table)
 library(caret)
 library(doParallel)
 library(multiROC)
+library(ROCR)
+
+#-------------------------------------------------------------------------------
+# Load source code
+source("R/00-cutoff_ROC.R")
 
 #-------------------------------------------------------------------------------
 # Root path
@@ -232,6 +237,7 @@ get_roc <- function(models = MOD,
   
   #Compile
   results <- data.table()
+  results_cutoff <- data.table()
   
   for(i in 1:n_models) {
     
@@ -242,14 +248,14 @@ get_roc <- function(models = MOD,
     predict <- predict(model, dataset, type = 'prob') 
     colnames(predict) <- paste0(colnames(predict), "_pred_", tile)
     
-    #Frame
+    #Frame 
     true_label <- dummies::dummy(dataset$Condition, sep = ".")
     true_label <- data.frame(true_label)
     colnames(true_label) <- gsub(".*?\\.", "", colnames(true_label))
     colnames(true_label) <- paste0(colnames(true_label), "_true")
     final <- cbind(true_label, predict)
     
-    #Get ROC
+    #Get ROC curve -------------------------------------
     roc_res <- multi_roc(final, force_diag=T)
     plot_roc <- plot_roc_data(roc_res)
     colnames(plot_roc)[3] <- "Condition"
@@ -268,9 +274,20 @@ get_roc <- function(models = MOD,
     #Collect results
     results <- rbind(results, plot_roc)
     
+    #Get cutoff ---------------------------------------
+    cutoff_model <- cutoff(final)
+    cutoff_model$repedition <- i
+    
+    #Collect cutoff
+    results_cutoff <- rbind(results_cutoff, cutoff_model)
+    
+    rm(list = c("model", "predict", "true_label", "final",
+                "roc_res", "plot_roc", "cutoff_model"))
+    
   }
   
-  return(results)
+  return(list(ROC = results,
+              cutoff = results_cutoff))
   
 }
 
@@ -350,20 +367,35 @@ X0017_Y0027_2019_roc <- get_roc(models = MOD,
                                 year = 2019,
                                 tile = "X0017_Y0027")
 
-results_roc <- rbind(training_2019_roc,
-                     testing_2019_roc,
-                     testing_2018_roc,
-                     testing_2021_roc,
-                     X0014_Y0024_2019_roc,
-                     X0015_Y0024_2019_roc,
-                     X0016_Y0024_2019_roc,
-                     X0016_Y0025_2019_roc,
-                     X0016_Y0027_2019_roc,
-                     X0017_Y0024_2019_roc,
-                     X0017_Y0026_2019_roc,
-                     X0017_Y0027_2019_roc)
+results_roc <- rbind(training_2019_roc$ROC,
+                     testing_2019_roc$ROC,
+                     testing_2018_roc$ROC,
+                     testing_2021_roc$ROC,
+                     X0014_Y0024_2019_roc$ROC,
+                     X0015_Y0024_2019_roc$ROC,
+                     X0016_Y0024_2019_roc$ROC,
+                     X0016_Y0025_2019_roc$ROC,
+                     X0016_Y0027_2019_roc$ROC,
+                     X0017_Y0024_2019_roc$ROC,
+                     X0017_Y0026_2019_roc$ROC,
+                     X0017_Y0027_2019_roc$ROC)
 
 fwrite(results_roc, "data/models/rocs.csv")
+
+results_cutoff <- rbind(training_2019_roc$cutoff,
+                        testing_2019_roc$cutoff,
+                        testing_2018_roc$cutoff,
+                        testing_2021_roc$cutoff,
+                        X0014_Y0024_2019_roc$cutoff,
+                        X0015_Y0024_2019_roc$cutoff,
+                        X0016_Y0024_2019_roc$cutoff,
+                        X0016_Y0025_2019_roc$cutoff,
+                        X0016_Y0027_2019_roc$cutoff,
+                        X0017_Y0024_2019_roc$cutoff,
+                        X0017_Y0026_2019_roc$cutoff,
+                        X0017_Y0027_2019_roc$cutoff)
+
+
 
 #-------------------------------------------------------------------------------
 # Extraction of the PLSD coefficients (Function)
