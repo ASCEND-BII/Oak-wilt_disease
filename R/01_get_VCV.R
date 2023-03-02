@@ -9,24 +9,25 @@
 
 library(data.table)
 library(terra)
-library(doParallel)
-library(foreach)
+library(parallel)
 
 #-------------------------------------------------------------------------------
 #Arguments
 
 #' @param root_path: select the root path of where the scenes are located
-#' @param out_path: path of the outputs
 #' @param threads: the number of threads to use for parallel processing
 
-path <- "/media/antonio/Work/Projects/Oak-wilt_mapping"
-root_path <- paste0(path, "/level3_application")
-get_VCV(root_path)
+#path <- "/media/antonio/Work/Projects/Oak-wilt_mapping"
+#root_path <- paste0(path, "/level3_application")
+#get_VCV(root_path)
 
 #-------------------------------------------------------------------------------
 #Arguments
 
-get_VCV <- function(root_path) {
+get_VCV <- function(root_path, threads = 16) {
+  
+  #--------------------------------------------------------
+  # Selection and arrangement of files
   
   #Search for paths
   files <- list.files(path = paste0(root_path), 
@@ -50,13 +51,19 @@ get_VCV <- function(root_path) {
   # Get metrics and VI of interest
   frame <- subset(frame, metric == "VGV" | metric == "VGM")
   
+  # Remove potential .ovr
+  frame[, ovr := strsplit(scene, ".POL")[[1]][2], by = seq_along(1:nrow(frame))]
+  frame <- subset(frame, ovr == ".tif")
+  
   #Unique date and tile
   frame[, unique := .GRP, by=.(tile, VI)]
   
   #N scenes
   n_scenes <- uniqueN(frame$unique)
   
-  for(i in 1:n_scenes) {
+  #--------------------------------------------------------
+  #Function for batch application
+  application <- function(i, frame) {
     
     #tile
     tile <- subset(frame, unique == i)
@@ -66,8 +73,8 @@ get_VCV <- function(root_path) {
     VGM <- rast(paste0(root_path, "/", tile$tile[1], "/", tile[metric == "VGM", scene]))
     
     #Get index
-    VCV <- VGV/VGM*1000
-    VCV[is.infinite(VCV)] <- 0
+    VCV <- (VGV/VGM)*1000
+    VCV[is.infinite(VCV)] <- NA
     
     #export name
     exp_name <- strsplit(tile[metric == "VGM", scene], "VGM")[[1]]
@@ -78,7 +85,23 @@ get_VCV <- function(root_path) {
                 export_name, 
                 overwrite = TRUE, 
                 names = names(VCV),
-                NAflag = -9999)
+                NAflag = -9999,
+                datatype = "INT2S")
     
   }
+  
+  # Parallel
+  mclapply(1:n_scenes, 
+           FUN = application, 
+           frame = frame, 
+           mc.cores = threads,
+           mc.preschedule = TRUE,
+           mc.cleanup = TRUE)
+
 }
+
+#-------------------------------------------------------------------------------
+#' @example 
+
+root_path <- "/panfs/jay/groups/17/cavender/shared/oak-wilt/level3"
+get_VCV(root_path, threads = 24)
