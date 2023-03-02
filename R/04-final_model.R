@@ -395,7 +395,7 @@ results_cutoff <- rbind(training_2019_roc$cutoff,
                         X0017_Y0026_2019_roc$cutoff,
                         X0017_Y0027_2019_roc$cutoff)
 
-
+fwrite(results_roc, "data/models/cutoffs.csv")
 
 #-------------------------------------------------------------------------------
 # Extraction of the PLSD coefficients (Function)
