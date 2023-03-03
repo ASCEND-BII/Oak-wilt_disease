@@ -246,12 +246,15 @@ get_roc <- function(models = MOD,
     
     #Predict observations
     predict <- predict(model, dataset, type = 'prob') 
+    predict <- predict[, c(2, 3, 1)]
     colnames(predict) <- paste0(colnames(predict), "_pred_", tile)
     
     #Frame 
     true_label <- dummies::dummy(dataset$Condition, sep = ".")
     true_label <- data.frame(true_label)
     colnames(true_label) <- gsub(".*?\\.", "", colnames(true_label))
+    true_label <- as.data.table(true_label)
+    true_label <- true_label[, c("Healthy", "Symptomatic", "Dead")]
     colnames(true_label) <- paste0(colnames(true_label), "_true")
     final <- cbind(true_label, predict)
     
@@ -276,6 +279,9 @@ get_roc <- function(models = MOD,
     
     #Get cutoff ---------------------------------------
     cutoff_model <- cutoff(final)
+    cutoff_model$type <- type
+    cutoff_model$year <- year
+    cutoff_model$tile <- tile 
     cutoff_model$repedition <- i
     
     #Collect cutoff
@@ -395,7 +401,7 @@ results_cutoff <- rbind(training_2019_roc$cutoff,
                         X0017_Y0026_2019_roc$cutoff,
                         X0017_Y0027_2019_roc$cutoff)
 
-fwrite(results_roc, "data/models/cutoffs.csv")
+fwrite(results_cutoff, "data/models/cutoffs.csv")
 
 #-------------------------------------------------------------------------------
 # Extraction of the PLSD coefficients (Function)

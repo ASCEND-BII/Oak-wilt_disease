@@ -15,6 +15,7 @@ library(multiROC)
 #-------------------------------------------------------------------------------
 # Get model of interest
 rocs <- fread("data/models/rocs.csv")
+cutoffs <- fread("data/models/cutoffs.csv")
 
 #-------------------------------------------------------------------------------
 # Interpolate sensitivity and specificity
@@ -77,7 +78,7 @@ roc_interpolation <- function(rocs) {
 
 # Interpolate (time consuming)
 interpolated_roc <- roc_interpolation(rocs)
-fwrite(interpolated_roc, "data/models/interpolated_roc.csv")
+fwrite(interpolated_roc, "data/models/rocs-interpolated.csv")
 
 # Get summary
 mean_roc <- interpolated_roc[, .(Sensitivity = mean(Sensitivity), AUC = mean(AUC)), 
@@ -90,6 +91,33 @@ mean_roc$Condition <- factor(mean_roc$Condition,
 
 mean_roc$tile <- as.factor(mean_roc$tile)
 mean_roc$tile <- factor(mean_roc$tile, levels = c("All",
+                                                  "X0014_Y0024",
+                                                  "X0015_Y0024",
+                                                  "X0016_Y0024",
+                                                  "X0017_Y0024",
+                                                  "X0016_Y0025",
+                                                  "X0017_Y0026",
+                                                  "X0016_Y0027",
+                                                  "X0017_Y0027"))
+
+#-------------------------------------------------------------------------------
+# Arrange the ROC cutoff for visualization
+
+mean_cutoff <- cutoffs[, .(Sensitivity = mean(Sensitivity), 
+                           Specificity = mean(Specificity), 
+                           Cutoff = mean(Cutoff),
+                           sd_sensitivity = sd(Sensitivity),
+                           sd_specificity = sd(Specificity),
+                           sd_cutoff = sd(Cutoff)), 
+                           by = c("type", "year", "tile", "Condition")]
+
+# Create Factors
+mean_cutoff$Condition <- as.factor(mean_cutoff$Condition)
+mean_cutoff$Condition <- factor(mean_cutoff$Condition, 
+                             levels = c("Healthy", "Symptomatic", "Dead"))
+
+mean_cutoff$tile <- as.factor(mean_cutoff$tile)
+mean_cutoff$tile <- factor(mean_cutoff$tile, levels = c("All",
                                                   "X0014_Y0024",
                                                   "X0015_Y0024",
                                                   "X0016_Y0024",
@@ -121,15 +149,22 @@ data_spatial <- mean_roc[tile != "All"]
 data_spatial <- data_spatial[type == "Testing"]
 data_spatial <- data_spatial[year == "2019"]
 
+roc_spatial <- mean_cutoff[tile != "All"]
+roc_spatial <- roc_spatial[type == "Testing"]
+roc_spatial <- roc_spatial[year == "2019"]
+
 plot <- ggplot(data_spatial, aes(x = Specificity, y=Sensitivity, colour = tile)) +
   geom_path(aes(color = tile), size = 0.4) +
   geom_segment(aes(x = 0, y = 0, xend = 1, yend = 1), 
                colour='grey', linetype = 'dotted') +
+  geom_errorbar(data = roc_spatial, aes(ymin= Sensitivity - sd_sensitivity, ymax = Sensitivity + sd_sensitivity)) + 
+  geom_errorbarh(data = roc_spatial, aes(xmin= Specificity - sd_specificity, xmax = Specificity + sd_specificity)) + 
+  geom_point(data = roc_spatial, aes(x = Specificity, y = Sensitivity, colour = tile), size = 2) +
   xlab("1 - Specificity") +
   th + 
-  scale_x_continuous(limits = c(-0.01, 1.01), expand = c(0, 0.01)) +
-  scale_y_continuous(limits = c(-0.01, 1.05), expand = c(0, 0)) +
-  scale_colour_viridis_d("Tile", option = "inferno", direction = -1) +
+  scale_x_continuous(limits = c(-0.02, 1.01), expand = c(0, 0.01)) +
+  scale_y_continuous(limits = c(-0.02, 1.02), expand = c(0, 0.01)) +
+  scale_colour_viridis_d("Tile", option = "mako", direction = -1) +
   facet_wrap(. ~ Condition) +
   theme(legend.position="none")
   
@@ -148,14 +183,22 @@ data_temporal <- data_temporal[type == "Testing"]
 data_temporal$year <- as.factor(data_temporal$year)
 data_temporal$year <- factor(data_temporal$year, levels = c("2018", "2019", "2021"))
 
+roc_temporal <- mean_cutoff[tile == "All"]
+roc_temporal <- roc_temporal[type == "Testing"]
+roc_temporal$year <- as.factor(roc_temporal$year)
+roc_temporal$year <- factor(roc_temporal$year, levels = c("2018", "2019", "2021"))
+
 plot <- ggplot(data_temporal, aes(x = Specificity, y=Sensitivity, colour = year)) +
   geom_path(aes(color = year), size = 0.4) +
   geom_segment(aes(x = 0, y = 0, xend = 1, yend = 1), 
                colour='grey', linetype = 'dotted') +
+  geom_errorbar(data = roc_temporal, aes(ymin= Sensitivity - sd_sensitivity, ymax = Sensitivity + sd_sensitivity)) + 
+  geom_errorbarh(data = roc_temporal, aes(xmin= Specificity - sd_specificity, xmax = Specificity + sd_specificity)) + 
+  geom_point(data = roc_temporal, aes(x = Specificity, y= Sensitivity, colour = year), size = 2) +
   xlab("1 - Specificity") +
   th + 
-  scale_x_continuous(limits = c(-0.01, 1.01), expand = c(0, 0)) +
-  scale_y_continuous(limits = c(-0.01, 1.05), expand = c(0, 0)) +
+  scale_x_continuous(limits = c(-0.02, 1.01), expand = c(0, 0.01)) +
+  scale_y_continuous(limits = c(-0.02, 1.02), expand = c(0, 0.01)) +
   scale_colour_manual("Year", values = c("#4575b4", "grey40", "#d73027")) +
   facet_wrap(. ~ Condition) +
   theme(legend.position="none")
