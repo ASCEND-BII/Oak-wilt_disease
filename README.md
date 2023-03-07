@@ -29,8 +29,8 @@ citation of the data.
 ##### Codes
 
 ```
-@codes{cloud_codes,
-  author       = {Guzmán, J.A., Frantz, D., Pinto-Ledezma, J.N., Juzwik, J., Townsend, P.A., Cavender-Bares, J.},
+@codes{oak-wilt,
+  author       = {Guzmán, J.A., Juzwik, J., Townsend, P.A., Cavender-Bares, J.},
   title        = {Mapping oak wilt disease using phenological observations from space},
   month        = abr,
   year         = 2023,
@@ -45,8 +45,8 @@ citation of the data.
 ##### Manuscript
 
 ```
-@article{cloud_manuscript,
-  author       = {Guzmán, J.A., Frantz, D., Pinto-Ledezma, J.N., Juzwik, J., Townsend, P.A., Cavender-Bares, J.},
+@article{oak-wilt,
+  author       = {Guzmán, J.A., Juzwik, J., Townsend, P.A., Cavender-Bares, J.},
   title        = {Mapping oak wilt disease using phenological observations from space},
   journal      = {pending},
   year         = {pending},
