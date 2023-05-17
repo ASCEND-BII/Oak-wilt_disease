@@ -107,11 +107,11 @@ arma::mat predicted_prob(arma::mat pixels,
     double amplitude_dead = (mean_dead + z_dead) - (mean_dead - z_dead);
     
     //Fill results
-    result(i, 0) = round(mean_healthy*10000);
-    result(i, 1) = round(mean_symptomatic*10000);
+    result(i, 0) = round(mean_symptomatic*10000);
+    result(i, 1) = round(mean_healthy*10000);
     result(i, 2) = round(mean_dead*10000);
-    result(i, 3) = round(amplitude_healthy*10000);
-    result(i, 4) = round(amplitude_symptomatic*10000);
+    result(i, 3) = round(amplitude_symptomatic*10000);
+    result(i, 4) = round(amplitude_healthy*10000);
     result(i, 5) = round(amplitude_dead*10000);
     
   }
