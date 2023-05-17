@@ -103,7 +103,8 @@ apply_model <- function(root_path,
                           coef_healthy,
                           coef_symtomatic,
                           coef_dead,
-                          eval_years) {
+                          eval_years,
+                          out_path) {
     
     sub_frame <- frame[tile == unique_tile[i]]
     
@@ -185,18 +186,17 @@ apply_model <- function(root_path,
                                     coef_symtomatic,
                                     coef_dead)
       
-      #predictions <- as.data.table(predictions)
       colnames(predictions) <- c("Symtomatic", "Healthy", "Dead", 
-                                 "amp-symtomatic", "amp-healthy", "amp-dead")
+                                 "amp-symtomatic", "amp-healthy", "amp-dead", 
+                                 "amp-total")
       
       #Merge predictions and scene_frame
       vss[] <- 0
-      scene_predictions <- c(vss, vss, vss, vss, vss, vss)
+      scene_predictions <- c(vss, vss, vss, vss, vss, vss, vss)
       scene_predictions[scene_frame$cell] <- as.matrix(predictions)
       names(scene_predictions) <- c("Symtomatic", "Healthy", "Dead", 
-                                    "amp-symtomatic", "amp-healthy", "amp-dead")
-      
-      #scene_predictions[] <- as.matrix(scene_frame)
+                                    "amp-symtomatic", "amp-healthy", "amp-dead",
+                                    "amp-total")
       
       #Second mask -------------------------------------
       #VSS
@@ -223,7 +223,8 @@ apply_model <- function(root_path,
       writeRaster(x = scene_predictions,
                   filename = export_predicted,
                   names = c("Symtomatic", "Healthy", "Dead", 
-                            "amp-symtomatic", "amp-healthy", "amp-dead"),
+                            "amp-symtomatic", "amp-healthy", "amp-dead",
+                            "amp-total"),
                   NAflag = -9999,
                   overwrite= TRUE,
                   datatype = "INT4S")
@@ -255,6 +256,7 @@ apply_model <- function(root_path,
            coef_symtomatic,
            coef_dead,
            eval_years,
+           out_path,
            mc.cores = 16,
            mc.preschedule = FALSE,
            mc.cleanup = FALSE)
@@ -264,7 +266,7 @@ apply_model <- function(root_path,
 #-------------------------------------------------------------------------------
 #' @example  
 
-root_path <- paste0(path, "/level3_application")
+root_path <- paste0(path, "/level3")
 healthy <- fread("data/coef-healthy.csv")
 symtomatic <- fread("data/coef-symtomatic.csv")
 dead <- fread("data/coef-dead.csv")

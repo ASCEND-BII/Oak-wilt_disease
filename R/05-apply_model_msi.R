@@ -40,10 +40,8 @@ apply_model <- function(root_path,
                         healthy, 
                         symtomatic,
                         dead,
+                        out_path,
                         threads) {
-  
-  #--------------------------------------------------------
-  # Selection and arrangement of files
   
   #Search for VI paths
   files <- list.files(path = root_path, 
@@ -72,7 +70,8 @@ apply_model <- function(root_path,
   frame <- subset(frame, metric == "VSS" |
                     metric == "VES" |
                     metric == "VGM" |
-                    metric == "VGV")
+                    metric == "VGV" |
+                    metric == "VPS")
   
   #Get years
   eval_years <- paste0("YEAR-", years)
@@ -105,7 +104,8 @@ apply_model <- function(root_path,
                           coef_healthy,
                           coef_symtomatic,
                           coef_dead,
-                          eval_years) {
+                          eval_years,
+                          out_path) {
     
     sub_frame <- frame[tile == unique_tile[i]]
     
@@ -129,6 +129,11 @@ apply_model <- function(root_path,
     VGV <- rast(paste0(root_path, "/",
                        VGV$tile[1], "/", 
                        VGV$scene[1]))
+    
+    VPS <- sub_frame[metric == "VPS" & VI == "KNV"]
+    VPS <- rast(paste0(root_path, "/",
+                       VPS$tile[1], "/", 
+                       VPS$scene[1]))
     
     #Loop over years
     for(j in 1:length(eval_years)) {
@@ -173,35 +178,40 @@ apply_model <- function(root_path,
                  vcv)
       
       #Transform to frame and get any NA
-      scene_frame <- as.data.table(as.data.frame(scene, cells = TRUE))
-      nas <- apply(scene_frame, 1, anyNA)
-      scene_frame[nas == TRUE, VSS := NA]
-      scene_frame[nas == TRUE, VES := NA]
-      scene_frame[nas == TRUE, VCV := NA]
+      scene_frame <- as.data.table(as.data.frame(scene, cells = TRUE, na.rm = TRUE))
       
       #Apply models ----------------------------------------
       #Apply models and get uncertainties
-      predictions <- predicted_prob(as.matrix(scene_frame[nas != TRUE, c("VSS", "VES", "VCV")]), 
+      predictions <- predicted_prob(as.matrix(scene_frame[, c("VSS", "VES", "VCV")]), 
                                     coef_healthy,
                                     coef_symtomatic,
                                     coef_dead)
       
-      predictions <- as.data.table(predictions)
-      colnames(predictions) <- c("Healthy", "Symtomatic", "Dead", 
-                                 "amp-healthy", "amp-symtomatic", "amp-dead")
-      predictions$cell <- scene_frame[nas != TRUE, cell]
+      colnames(predictions) <- c("Symtomatic", "Healthy", "Dead", 
+                                 "amp-symtomatic", "amp-healthy", "amp-dead", 
+                                 "amp-total")
       
       #Merge predictions and scene_frame
-      scene_frame <- merge(scene_frame, predictions, by = "cell", all.x = TRUE)
-      scene_frame <- scene_frame[, c(5:10)]
-      
-      scene_predictions <- c(vss, vss, vss, vss, vss, vss)
-      scene_predictions[] <- as.matrix(scene_frame)
+      vss[] <- 0
+      scene_predictions <- c(vss, vss, vss, vss, vss, vss, vss)
+      scene_predictions[scene_frame$cell] <- as.matrix(predictions)
+      names(scene_predictions) <- c("Symtomatic", "Healthy", "Dead", 
+                                    "amp-symtomatic", "amp-healthy", "amp-dead",
+                                    "amp-total")
       
       #Second mask -------------------------------------
+      #VSS
       mask <- VSS[eval_years[j]]
       mask[mask < 600] <- 0
       mask[mask >= 600] <- 1
+      
+      scene_predictions <- mask(scene_predictions, mask, maskvalues = 0)
+      
+      #VPS
+      mask <- VPS[eval_years[j]]
+      mask[mask < 5000] <- 0
+      mask[mask >= 5000] <- 1
+      names(mask) <- "kNDVI-mask"
       
       scene_predictions <- mask(scene_predictions, mask, maskvalues = 0)
       
@@ -213,8 +223,9 @@ apply_model <- function(root_path,
       #Export
       writeRaster(x = scene_predictions,
                   filename = export_predicted,
-                  names = c("Healthy", "Symtomatic", "Dead", 
-                            "amp-healthy", "amp-symtomatic", "amp-dead"),
+                  names = c("Symtomatic", "Healthy", "Dead", 
+                            "amp-symtomatic", "amp-healthy", "amp-dead",
+                            "amp-total"),
                   NAflag = -9999,
                   overwrite= TRUE,
                   datatype = "INT4S")
@@ -224,14 +235,14 @@ apply_model <- function(root_path,
                   "vss", "ves", "vcv",
                   "vss_mean", "ves_mean", "vcv_mean",
                   "vss_sd", "ves_sd", "vcv_sd",
-                  "scene_frame", "nas","predictions",
+                  "scene_frame","predictions",
                   "export_predicted", "scene_predictions"))
       
     }
     
     #Remove residuals
     rm(list = c("sub_frame", "VSS", 
-                "VGM", "VGV", "VES"))
+                "VGM", "VGV", "VES", "VPS"))
     gc()
     
     return(NA)
@@ -246,6 +257,7 @@ apply_model <- function(root_path,
            coef_symtomatic,
            coef_dead,
            eval_years,
+           out_path,
            mc.cores = threads,
            mc.preschedule = FALSE,
            mc.cleanup = FALSE)

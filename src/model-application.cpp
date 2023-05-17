@@ -61,7 +61,7 @@ arma::mat predicted_prob(arma::mat pixels,
   double n_root = sqrt(nmodels);
   
   //Mat to return
-  arma::mat result(an, 6);
+  arma::mat result(an, 7);
   
   //Get coefficients
   arma::mat coef_healthy = healthy.cols(1, 3);
@@ -113,6 +113,7 @@ arma::mat predicted_prob(arma::mat pixels,
     result(i, 3) = round(amplitude_symptomatic*10000);
     result(i, 4) = round(amplitude_healthy*10000);
     result(i, 5) = round(amplitude_dead*10000);
+    result(i, 6) = result(i, 3) + result(i, 4) + result(i, 5);
     
   }
   
