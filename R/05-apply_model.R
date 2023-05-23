@@ -257,7 +257,7 @@ apply_model <- function(root_path,
            coef_dead,
            eval_years,
            out_path,
-           mc.cores = 16,
+           mc.cores = threads,
            mc.preschedule = FALSE,
            mc.cleanup = FALSE)
   

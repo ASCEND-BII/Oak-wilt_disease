@@ -40,6 +40,7 @@ apply_model <- function(root_path,
                         healthy, 
                         symtomatic,
                         dead,
+                        years,
                         out_path,
                         threads) {
   
@@ -279,4 +280,6 @@ apply_model(root_path,
             healthy, 
             symtomatic,
             dead,
+            years,
+            out_path,
             threads)
