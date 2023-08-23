@@ -1,4 +1,4 @@
-[![DOI](https://zenodo.org/badge/1.svg)](https://zenodo.org/badge/latestdoi/)
+[![DOI](https://zenodo.org/badge/162520913.svg)](https://zenodo.org/badge/latestdoi/162520913)
 
 # Mapping oak wilt disease from space using land surface phenology
 
@@ -48,12 +48,12 @@ using a free [Globus](https://www.globus.org/) account.
 @codes{oak-wilt,
   author       = {Guzmán, J.A., Pinto-Ledezma, J., Frantz, D., Townsend, P.A., Juzwik, J., Cavender-Bares, J.},
   title        = {Mapping oak wilt disease using phenological observations from space},
-  month        = abr,
+  month        = August,
   year         = 2023,
   publisher    = {Zenodo},
-  version      = {v0.1},
-  doi          = {10.5281/zenodo.XXXX},
-  url          = {https://doi.org/10.5281/zenodo.XXX}
+  version      = {v1.0},
+  doi          = {10.5281/zenodo.8275122},
+  url          = {https://doi.org/10.5281/zenodo.8275122}
 }
 
 ```
@@ -63,7 +63,7 @@ using a free [Globus](https://www.globus.org/) account.
 ```
 @article{oak-wilt,
   author       = {Guzmán, J.A., Pinto-Ledezma, J., Frantz, D., Townsend, P.A., Juzwik, J., Cavender-Bares, J.},
-  title        = {Mapping oak wilt disease using phenological observations from space},
+  title        = {Mapping oak wilt disease from space using land surface phenology},
   journal      = {pending},
   year         = {pending},
   volume       = {pending},
