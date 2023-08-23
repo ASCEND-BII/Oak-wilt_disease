@@ -1,28 +1,44 @@
 [![DOI](https://zenodo.org/badge/1.svg)](https://zenodo.org/badge/latestdoi/)
 
-# Mapping oak wilt disease using phenological observations from space
+# Mapping oak wilt disease from space using land surface phenology
 
 <br />
 
-These codes are used to predict the present of symptomatic oak trees to oak 
-wilt using land surface phenology (LSP) metrics (Fig 1). LSP metrics are derived from 
-Analysis Ready Data (ARD) of Sentinel-2 using the processing workflow of [FORCE](https://force-eo.readthedocs.io/en/latest/).
+These codes are used to predict the present of symptomatic oak trees to oak wilt 
+disease using land surface phenology (LSP) metrics (Fig 1). LSP metrics are 
+derived from Analysis Ready Data (ARD) of Sentinel-2 using the processing 
+workflow of [FORCE](https://force-eo.readthedocs.io/en/latest/) (Fig. 2).
 
-The data used in this manuscript that accompany these codes are available at the 
-[DRUM](https://doi.org). Please follow the instructions described there for proper 
-citation of the data.
+<p align="center">
+ <img src="https://github.com/ASCEND-BII/Oak-wilt/blob/main/inst/Figure_1.png?raw=true" align="center" alt="500" width="500"/>
+    <br>
+    <em>Fig 1. Temporal changes in the Chlorophyll/Carotenoid Index (CCI) of a pixel from an oak tree
+that died from oak wilt disease (a) and the expected behavior of land surface phenology metrics
+when oak tree conditions are compared with the surrounding healthy vegetation for a given
+phenological year (b).</em>
+</p>
 
 <br />
 
 <p align="center">
  <img src="https://github.com/ASCEND-BII/Oak-wilt/blob/main/inst/workflow.png?raw=true" align="center" alt="720" width="720"/>
     <br>
-    <em>Fig 1. Schematic workflow description.</em>
+    <em>Fig 2. Schematic workflow description.</em>
 </p>
 
 <br />
 
-#### Code structure
+Most of the data used in our manuscript that accompany these codes are available 
+at the [DRUM](https://doi.org). Please follow the instructions described there for 
+proper citation of the data if used.
+
+<br />
+
+#### Products available
+
+We made available all the scenes of [LSP](https://app.globus.org/file-manager?origin_id=d5f9b461-7d6e-442b-87ed-be8aa2ca6763&origin_path=%2F) 
+(L3) and the predicted [maps of probabilities](https://app.globus.org/file-manager?origin_id=2ad70821-cc5a-424e-aa72-8553d2bb45eb&origin_path=%2F) (L4) for both states (i.e., Minnesota and Wisconsin). These can be accessible 
+using a free [Globus](https://www.globus.org/) account.
 
 #### Citing codes, manuscript, and data.
 
@@ -42,10 +58,6 @@ citation of the data.
 
 ```
 
-
-J. Antonio Guzmán Q. 1* , Jesús N. Pinto-Ledezma 1 , David Frantz 2 , Philip A. Townsend 3 , Jennifer
-Juzwik 4 , Jeannine Cavender-Bares 1
-
 ##### Manuscript
 
 ```
@@ -60,7 +72,3 @@ Juzwik 4 , Jeannine Cavender-Bares 1
 }
 
 ```
-
-##### Data
-
-Please follow the instructions from [Data Repository for U of M](https://doi.org)
