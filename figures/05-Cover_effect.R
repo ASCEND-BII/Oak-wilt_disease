@@ -1,8 +1,9 @@
 ################################################################################
-##### 04 - Plot of spatial and temporal performance
+##### 04 - Plot of pixel coverage and crown area effects 
 ################################################################################
 
-#' @description A script for ploting the performance of the metrics.
+#' @description A script for ploting the effect of pixel coverage and crown area 
+#' of the performance metrics.
 
 #-------------------------------------------------------------------------------
 #' Libraries
