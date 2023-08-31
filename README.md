@@ -47,7 +47,7 @@ using a free [Globus](https://www.globus.org/) account.
 ```
 @codes{oak-wilt,
   author       = {Guzmán, J.A., Pinto-Ledezma, J., Frantz, D., Townsend, P.A., Juzwik, J., Cavender-Bares, J.},
-  title        = {Mapping oak wilt disease using phenological observations from space},
+  title        = {Mapping oak wilt disease from space using land surface phenology},
   month        = August,
   year         = 2023,
   publisher    = {Zenodo},
@@ -64,8 +64,8 @@ using a free [Globus](https://www.globus.org/) account.
 @article{oak-wilt,
   author       = {Guzmán, J.A., Pinto-Ledezma, J., Frantz, D., Townsend, P.A., Juzwik, J., Cavender-Bares, J.},
   title        = {Mapping oak wilt disease from space using land surface phenology},
-  journal      = {pending},
-  year         = {pending},
+  journal      = {Remote Sensing of Environment},
+  year         = {2023},
   volume       = {pending},
   pages        = {pending}
   doi          = {pending}
