@@ -1,4 +1,4 @@
-[![DOI](https://zenodo.org/badge/162520913.svg)](https://zenodo.org/badge/latestdoi/162520913)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.8275122.svg)](https://doi.org/10.5281/zenodo.8275122)
 
 # Mapping oak wilt disease from space using land surface phenology
 
